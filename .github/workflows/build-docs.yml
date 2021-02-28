@@ -12,10 +12,10 @@ jobs:
     - name: Build Sphinx docs
       uses: ammaraskar/sphinx-action@master
       with:
-        docs-folder: docs/sphinx
+        docs-folder: docs
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3 # https://github.com/peaceiris/actions-gh-pages
       with:
         deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
-        publish_dir: docs/sphinx/build/html
+        publish_dir: docs/build/html
         force_orphan: true
