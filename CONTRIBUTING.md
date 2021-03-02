@@ -1,77 +1,68 @@
-# Contribuir a JIZT
+# Contribute to Jizt
 
-En primer lugar, queremos darte las gracias por tu interés en
-contribuir a JIZT. Las contribuciones de la comunidad son esenciales
-para hacer de JIZT un proyecto aún mejor. Queremos que dichas
-contribuciones sean lo más fáciles de llevar a cabo como sea posible.
-Existen una serie de pautas que pedimos que sigan aquellos que quieran
-contribuir al proyecto, a fin de mantener una buena organización.
-
-## ¿Cómo contribuir al proyecto?
+First of all, we want to thank you for your interest in contributing to Jizt.
+Contributions from the community are essential for the improvement of Jizt. We want to
+keep the contrubution process as easy and simple as possible. There are a number of
+guidelines that we ask those who wish to contribute to the project to follow in order
+to maintain a good organization.
 
 
-Existen numerosas formas en las que puedes contribuir al proyecto. Por
-ejemplo:
+## How to contribute to the project?
 
-- Ayudando a mantener, corregir errores o traducir la documentación para
-que más personas puedan conocer acerca de JIZT.
+There are numerous ways in which you can contribute to the project. For example:
 
-- Enviando reportes de errores o cualquier otro tipo de problemas.
+- Helping to maintain the code, fixing bugs or translating documentation so that more
+  people can get to know about Jizt.
 
-- Escribiendo _patches_ para corregir _bugs_ conocidos.
+- Submitting bug reports or any other type of problem.
 
-- Aportando ideas para nuevas funcionalidades.
+- Writing _patches_ to fix known bugs.
 
-- Desarrollando código que implemente nuevas funcionalidades solicitadas.
+- Providing ideas for new features.
 
-- Contándole a tus amigos lo increíble que es JIZT.
+- Implementing these new requested features.
 
-- Escribiendo _posts_ o _blogs_ acerca de JIZT, o tutoriales para que otros
-aprendan a usarlo.
+- Telling your friends how awesome Jizt is (hopefully you think so 😉).
 
-
-## ¿Cómo solicitar incluir código al proyecto?
-
-Para contribuir con tu código al proyecto, crea primero una _Pull request_ y
-realiza las modificaciones o adicciones pertinentes.
-
-Alternativamente, puedes hacer un _Fork_ manual, realizar las modificaciones,
-y más tarde abrir una _Pull request_.
-
-Por favor, no olvides explicar de manera detallada y clara los cambios
-implementados en la _Pull request_. De lo contrario, no podremos considerar
-tu contribución.
-
-## ¿Cómo reportar errores?
-
-Los reportes de errores nos ayudan a mejorar. Si has encontrado un error,
-puedes abrir una _Issue_ utilizando la
-[plantilla](https://github.com/dmlls/jizt/issues/new?assignees=&labels=bug&template=reportar-error.md&title=)
-habilitada para ello.
-
-Por favor, revisa primero que el error que has encontrado no ha sido
-reportado previamente.
-
-**Nota importante**: si encuentras una vulnerabilidad de seguridad **NO**
-abras una _Issue_. Envíanos un mensaje a
-[jizt@diegomiguel.me](mailto:jizt@diegomiguel.me).
+- Writing a post or blog about Jizt.
 
 
-## ¿Cómo solicitar nuevas funcionalidades?
+## How to request to add your code to the project?
 
-Si tienes una idea genial de una funcionalidad que crees que JIZT debería
-tener, ¡no dudes en contárnosla! Para ello, crea una
-[nueva discusión](https://github.com/dmlls/jizt/discussions/new) con el
-título "[Feature Request]" seguido de tu idea.
+To contribute to the project with your code, first create a Pull request and make the
+appropriate modifications or additions.
 
-Por favor, revisa primero que la funcionalidad deseada no ha sido sugerida
-previamente.
+Alternatively, you can do a manual Fork, modify the code, and later open a Pull
+request.
 
-Trataremos de atender todas las peticiones, pero trata de ser paciente,
-aún somos un equipo pequeñito 😃
+Please do not forget to explain in detail the changes implemented in the Pull request.
+Otherwise, we might not be able to consider your contribution.
+
+
+## How to report bugs?
+
+Bug reports help us improve. If you have found a bug, you can open an Issue using the
+[template provided](https://github.com/dmlls/jizt/issues/new?assignees=&labels=bug&template=reportar-error.md&title=).
+
+Please check first that the bug you have found has not been previously reported.
+
+**Important note**: if you find a security vulnerability **DO NOT** open an Issue.
+Send us a message to [contact@jizt.it](mailto:contact@jizt.it).
+
+
+## How to request new features?
+
+If you have a great idea for a feature you think JIZT should have, feel free to tell
+us about it! To do so, create a new
+[Discussion](https://github.com/jizt-it/jizt-backend/discussions/new) with the title
+"[Feature Request]" followed by your idea.
+
+Please check first that the desired feature has not been previously suggested.
+
+We will try to attend all requests, but please be patient, we are still a small team
+😁
 
 ---
 
-¿Te ha quedado alguna duda? ¡Escríbenos a
-[jizt@diegomiguel.me](mailto:jizt@diegomiguel.me)! Estaremos encantados de
-ayudarte.
+Still have any doubts? Drop us an email at
+[contact@jizt.it](mailto:contact@jizt.it). We will be happy to help you!
