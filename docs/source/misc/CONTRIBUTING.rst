@@ -1,4 +1,7 @@
-# Contribute to Jizt
+.. _contributing:
+
+Contribute to Jizt
+==================
 
 First of all, we want to thank you for your interest in contributing to Jizt.
 Contributions from the community are essential for the improvement of Jizt. We want to
@@ -7,7 +10,8 @@ guidelines that we ask those who wish to contribute to the project to follow in 
 to maintain a good organization.
 
 
-## How to contribute to the project?
+How to contribute to the project?
+---------------------------------
 
 There are numerous ways in which you can contribute to the project. For example:
 
@@ -16,7 +20,7 @@ There are numerous ways in which you can contribute to the project. For example:
 
 - Submitting bug reports or any other type of problem.
 
-- Writing _patches_ to fix known bugs.
+- Fixing known bugs.
 
 - Providing ideas for new features.
 
@@ -27,7 +31,8 @@ There are numerous ways in which you can contribute to the project. For example:
 - Writing a post or blog about Jizt.
 
 
-## How to request to add your code to the project?
+How to request to add your code to the project?
+-----------------------------------------------
 
 To contribute to the project with your code, first create a Pull request and make the
 appropriate modifications or additions.
@@ -39,22 +44,27 @@ Please do not forget to explain in detail the changes implemented in the Pull re
 Otherwise, we might not be able to consider your contribution.
 
 
-## How to report bugs?
+How to report bugs?
+-------------------
 
 Bug reports help us improve. If you have found a bug, you can open an Issue using the
-[template provided](https://github.com/dmlls/jizt/issues/new?assignees=&labels=bug&template=reportar-error.md&title=).
+`template provided
+<https://github.com/jizt-it/jizt-backend/issues/new?assignees=&labels=bug&template=bug_report.md&title=%5BBug%5D+>`__.
 
 Please check first that the bug you have found has not been previously reported.
 
-**Important note**: if you find a security vulnerability **DO NOT** open an Issue.
-Send us a message to [contact@jizt.it](mailto:contact@jizt.it).
+.. warning::
+
+   If you find a security vulnerability **DO NOT** open an Issue.
+   Send us a message to `contact@jizt.it <mailto:contact@jizt.it>`__.
 
 
-## How to request new features?
+How to request new features?
+----------------------------
 
 If you have a great idea for a feature you think JIZT should have, feel free to tell
 us about it! To do so, create a new
-[Discussion](https://github.com/jizt-it/jizt-backend/discussions/new) with the title
+`Discussion <https://github.com/jizt-it/jizt-backend/discussions/new>`__ with the title
 "[Feature Request]" followed by your idea.
 
 Please check first that the desired feature has not been previously suggested.
@@ -62,7 +72,7 @@ Please check first that the desired feature has not been previously suggested.
 We will try to attend all requests, but please be patient, we are still a small team
 😁
 
----
+--------------
 
 Still have any doubts? Drop us an email at
-[contact@jizt.it](mailto:contact@jizt.it). We will be happy to help you!
+`contact@jizt.it <mailto:contact@jizt.it>`__. We will be happy to help you!

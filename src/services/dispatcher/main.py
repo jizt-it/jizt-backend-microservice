@@ -130,8 +130,7 @@ class DispatcherService:
             self.kafka_consumerloop.start()
             self.app.run(host=FLASK_HOST,
                          port=FLASK_PORT,
-                         debug=(self.logger.level == "DEBUG")
-            )
+                         debug=(self.logger.level == "DEBUG"))
         finally:
             self.kafka_consumerloop.stop()
 
@@ -220,8 +219,7 @@ class PlainTextSummary(Resource):
             message_value = self.request_schema.dumps(data)
             self._produce_message(topic,
                                   message_key,
-                                  message_value
-            )
+                                  message_value)
 
             self.dispatcher_service.logger.debug(
                         f'Message produced: [topic]: "{topic}", '

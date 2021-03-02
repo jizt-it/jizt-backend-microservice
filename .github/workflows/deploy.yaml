@@ -28,12 +28,12 @@ jobs:
     - name: Install requirements
       uses: BSFishy/pip-action@v1
       with:
-        requirements: tests/requirements.txt
+        requirements: test/requirements.txt
 
     - run: python -c 'import nltk; nltk.download("punkt")'
 
     - name: Run tests
-      run: pytest tests --ignore tests/test_text_encoding.py
+      run: pytest test --ignore test/test_text_encoding.py
       
     # Setup gcloud CLI
     - uses: google-github-actions/setup-gcloud@v0.2.0

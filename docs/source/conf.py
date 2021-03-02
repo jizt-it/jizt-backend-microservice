@@ -1,5 +1,5 @@
 
-# Copyright (C) 2020-2021 Diego Miguel Lozano <jizt@diegomiguel.me>
+# Copyright (C) 2020-2021 Diego Miguel Lozano <contact@jizt.it>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -39,8 +39,8 @@ os.environ['FLASK_SERVER_PORT'] = "5000"
 
 # -- Project information -----------------------------------------------------
 
-project = 'JIZT - AI Summarization'
-copyright = '2021, Diego Miguel Lozano'
+project = 'Jizt - AI Summarization'
+copyright = '2021'  # the rest is added with js
 author = 'Diego Miguel Lozano'
 
 # The full version, including alpha/beta/rc tags
@@ -55,8 +55,7 @@ release = '0.1.0'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.githubpages',
+    # 'sphinx.ext.viewcode',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -67,7 +66,7 @@ templates_path = ['_templates']
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = 'es'
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -91,6 +90,13 @@ numfig = True
 
 html_logo = '_static/images/jizt-docs.png'
 html_favicon = '_static/images/favicon.png'
+
+html_context = {
+  'display_github': True,
+  'github_user': 'jizt-it',
+  'github_repo': 'jizt-backend',
+  'github_version': 'main/docs/source/',
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

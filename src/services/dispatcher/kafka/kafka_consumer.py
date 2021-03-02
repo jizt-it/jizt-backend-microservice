@@ -113,8 +113,9 @@ class ConsumerLoop(StoppableThread):
                         self.logger.error("Undefined error in consumer loop")
                         raise KafkaException(msg.error())
                 else:
-                    self.logger.debug(f'Message consumed: [key]: {msg.key()}, '
-                                      f'[value]: "{msg.value()[:500]} [...]"'
+                    self.logger.debug(
+                        f'Message consumed: [key]: {msg.key()}, '
+                        f'[value]: "{msg.value()[:500]} [...]"'
                     )
 
                     data = self.consumed_msg_schema.loads(msg.value())

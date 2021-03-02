@@ -92,8 +92,7 @@ class TextSummarizerService:
                         raise KafkaException(msg.error())
                 else:
                     self.logger.debug(f'Message consumed: [key]: {msg.key()}, '
-                                      f'[value]: "{msg.value()[:500]} [...]"'
-                    )
+                                      f'[value]: "{msg.value()[:500]} [...]"')
                     topic = KafkaTopic.TEXT_POSTPROCESSING.value
                     message_key = msg.key()
 
@@ -210,8 +209,7 @@ class TextSummarizerService:
         else:
             self.logger.debug(f'Message delivered sucessfully: [topic]: '
                               f'"{msg.topic()}", [partition]: "{msg.partition()}"'
-                              f', [offset]: {msg.offset()}'
-            )
+                              f', [offset]: {msg.offset()}')
 
 
 if __name__ == "__main__":

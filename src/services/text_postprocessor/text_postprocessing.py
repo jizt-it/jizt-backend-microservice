@@ -63,7 +63,8 @@ class TextPostprocessor:
         truecased_sents = list(map(self.truecaser.get_true_case, sentences))
         return ' '.join(map(self._capitalize_first_letter, truecased_sents))
 
-    def _capitalize_first_letter(self, sent: str) -> str:
+    @staticmethod
+    def _capitalize_first_letter(cls, sent: str) -> str:
         """Capitalize the first letter of a sentence.
 
         Args:
