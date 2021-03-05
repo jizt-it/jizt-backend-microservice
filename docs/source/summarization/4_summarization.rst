@@ -25,8 +25,8 @@ Then, we decode them, so we get again actual words instead of real numbers.
    Once we get the partial summaries from the model, we decode and concatenate them.
 
 As the T5 model that we use is uncased the final summary obtained at this point is all
-in lowecase. This is something we deal with in the next stage, the post-processing, so
-the summary returned to the user is correctly cased.
+in lowercase. This is something we deal with in the next stage, the post-processing,
+so the summary returned to the user is correctly cased.
 
 If you curious about how these language generation models work, we recommend to read
 this `fantastic article <https://huggingface.co/blog/how-to-generate>`__ by Hugging

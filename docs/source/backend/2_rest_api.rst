@@ -16,8 +16,8 @@ REST API
 The generation of summaries is a process that can take several seconds, depending on
 the length of the text to be summarized, the parameters with which the summary is
 generated or the service load at the moment. Because of that, it would not be
-appropiate that summaries were requested with a single HTTP request, since it would be
-too long-lived.
+appropriate that summaries were requested with a single HTTP request, since it would
+be too long-lived.
 
 We handle this with asynchronous request processing, with which requesting a summary
 is a two-step process.
@@ -35,8 +35,8 @@ body of the request. The API responds with a unique identifier of the summary, t
    :align: center
    :width: 100%
 
-   First, an HTTP POST request should be made, to which the API will respond with
-   the ``summary_id``.
+   First, an HTTP POST request should be made. The API will then respond with the
+   ``summary_id``.
 
 As can be seen in the previous figure, the status of the summary is ``summarizing``,
 and since the summary is not yet ready the ``ouput`` will be ``null``.

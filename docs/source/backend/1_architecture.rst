@@ -35,9 +35,9 @@ Below, we include an overview of the backend architecture:
 As can be seen in the previous image, we use `Kubernetes <https://kubernetes.io/>`__
 to orchestrate the different microservices. In turn, `Apache Kafka
 <https://kafka.apache.org/>`__ makes possible the communication between these
-microservices. Specifically, we use `Strimzi <https://strimzi.io/>`__, which alows us
-to easily deploy Kafka on Kubernetes. This (still small) architecture allows us to add
-more language models or other NLP tasks easily, by adding new microservices and their
+microservices. Specifically, we use `Strimzi <https://strimzi.io/>`__, which allows us
+to easily deploy Kafka on Kubernetes. This (still small) architecture lets us add more
+language models or other NLP tasks easily, by adding new microservices and their
 corresponding Kafka topics. Since these models usually take a great deal of storage
 space, they are stored in `Persistent Volumes
 <https://kubernetes.io/docs/concepts/storage/persistent-volumes/>`_, which are then

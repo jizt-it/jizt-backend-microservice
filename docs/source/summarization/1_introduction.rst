@@ -30,7 +30,7 @@ The generation of summaries is divided into four fundamental stages:
 #. **Post-processing**: the text produced by the model may contain small flaws. For
    example, some models are not cased, which means that they will most likely write
    all the words in lowercase. In this stage, we try to solve this kind of problems,
-   in our case using a trucaser model, which is able to fix the text casing.
+   in our case using a truecaser model, which is able to fix the text casing.
 
 The following picture shows an overview of the different stages:
 

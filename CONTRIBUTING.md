@@ -52,7 +52,7 @@ Send us a message to [contact@jizt.it](mailto:contact@jizt.it).
 
 ## How to request new features?
 
-If you have a great idea for a feature you think JIZT should have, feel free to tell
+If you have a great idea for a feature you think Jizt should have, feel free to tell
 us about it! To do so, create a new
 [Discussion](https://github.com/jizt-it/jizt-backend/discussions/new) with the title
 "[Feature Request]" followed by your idea.
