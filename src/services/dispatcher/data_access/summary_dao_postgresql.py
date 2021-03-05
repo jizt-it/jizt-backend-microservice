@@ -125,8 +125,8 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
             if conn is not None:
                 conn.close()
 
-    @staticmethod
-    def _get_unique_key(text: str) -> str:
+    @classmethod
+    def _get_unique_key(cls, text: str) -> str:
         """Get a unique key for a text.
 
         SHA-256 algorithm is used.
