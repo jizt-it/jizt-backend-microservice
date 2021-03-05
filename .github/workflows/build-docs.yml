@@ -19,3 +19,4 @@ jobs:
         deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
         publish_dir: docs/build/html
         force_orphan: true
+        cname: docs.jizt.it
