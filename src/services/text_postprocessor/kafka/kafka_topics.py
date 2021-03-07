@@ -26,4 +26,4 @@ class KafkaTopic(Enum):
     """Kafka Topics."""
 
     TEXT_POSTPROCESSING = 'text-postprocessing-topic'
-    READY = 'ready-topic'
+    DISPATCHER = 'dispatcher-topic'

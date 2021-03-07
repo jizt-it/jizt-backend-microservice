@@ -24,6 +24,7 @@
 DROP TYPE IF EXISTS NLP_TASK CASCADE;
 DROP TYPE IF EXISTS STATUS CASCADE;
 
+DROP TABLE IF EXISTS id_raw_id_preprocessed CASCADE;
 DROP TABLE IF EXISTS summary CASCADE;
 DROP TABLE IF EXISTS model CASCADE;
 DROP TABLE IF EXISTS model_family CASCADE;
@@ -98,6 +99,14 @@ CREATE TABLE summary (
     language_tag        TEXT NOT NULL
         CONSTRAINT FK_language_tag
         REFERENCES language(language_tag) ON UPDATE CASCADE
+);
+
+CREATE TABLE id_raw_id_preprocessed (
+    id_raw              CHAR(64) UNIQUE NOT NULL,
+    id_preprocessed     CHAR(64) NOT NULL
+        CONSTRAINT FK_id_preprocessed
+        REFERENCES summary ON DELETE CASCADE ON UPDATE CASCADE,
+    PRIMARY KEY(id_raw, id_preprocessed)
 );
 
 /*

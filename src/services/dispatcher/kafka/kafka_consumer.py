@@ -24,11 +24,13 @@ import socket
 from datetime import datetime
 from threading import Thread, Event
 from kafka_topics import KafkaTopic
-from confluent_kafka import DeserializingConsumer, KafkaError, KafkaException
+from unique_key import get_unique_key
+from confluent_kafka import DeserializingConsumer, Message, KafkaError, KafkaException
 from confluent_kafka.serialization import StringDeserializer
-from data_access.summary_status import SummaryStatus
-from data_access.summary_dao_factory import SummaryDAOFactory
-from data_access.schemas import TextPostprocessingConsumedMsgSchema
+from kafka_producer import Producer
+from data.summary_status import SummaryStatus
+from data.summary_dao_factory import SummaryDAOFactory
+from data.schemas import ConsumedMsgSchema, TextEncodingProducedMsgSchema
 
 
 class StoppableThread(Thread):
@@ -89,12 +91,14 @@ class ConsumerLoop(StoppableThread):
                   'key.deserializer': StringDeserializer('utf_8'),
                   'value.deserializer': StringDeserializer('utf_8')}
         self.consumer = DeserializingConsumer(config)
+        self.producer = Producer()
         self.db = db
-        self.consumed_msg_schema = TextPostprocessingConsumedMsgSchema()
+        self.consumed_msg_schema = ConsumedMsgSchema()
+        self.text_encoding_produced_msg_schema = TextEncodingProducedMsgSchema()
 
     def run(self):
         try:
-            topics_to_subscribe = [KafkaTopic.READY.value]
+            topics_to_subscribe = [KafkaTopic.DISPATCHER.value]
             self.consumer.subscribe(topics_to_subscribe)
             self.logger.debug(f'Consumer subscribed to topic(s): '
                               f'{topics_to_subscribe}')
@@ -119,15 +123,100 @@ class ConsumerLoop(StoppableThread):
                     )
 
                     data = self.consumed_msg_schema.loads(msg.value())
-                    summary = self.db.update_summary(
-                        id_=msg.key(),
-                        ended_at=datetime.now(),
-                        status=SummaryStatus.COMPLETED.value,
-                        summary=data['text_postprocessed'],
-                        params=data['params']  # validated params
-                    )  # important: keys must match DB columns
-                    self.logger.debug(f"Consumer message processed. "
-                                      f"Summary updated: {summary}")
+
+                    if data["summary_status"] == SummaryStatus.PREPROCESSING.value:
+                        id_preprocessed = get_unique_key(
+                            data["text_preprocessed"],
+                            data["model"],
+                            data["params"]
+                        )
+                        if self.db.summary_exists(id_preprocessed):
+                            self.db.update_preprocessed_id(msg.key(), id_preprocessed)
+                            self.logger.debug("Preprocessed text already exists. "
+                                              "Not producing to Encoder.")
+                        else:
+                            old_source = self.db.get_summary(msg.key()).source
+                            self.db.update_source(old_source,
+                                                  data["text_preprocessed"],
+                                                  msg.key(),
+                                                  id_preprocessed)
+                            del data["summary_status"]
+                            message_value = self.text_encoding_produced_msg_schema.dumps(data)
+                            self._produce_message(KafkaTopic.TEXT_ENCODING.value,
+                                                  msg.key(),
+                                                  message_value)
+                            self.logger.debug(f"Preprocessed text does not exist. "
+                                              f"Producing to Encoder.")
+                    else:
+                        # Important: keys must match DB columns
+                        update_columns = {"status": data["summary_status"]}
+                        if data["summary_status"] == SummaryStatus.COMPLETED.value:
+                            update_columns.update({
+                                "ended_at": datetime.now(),
+                                "summary": data["output"],
+                                "params": data["params"]  # validated params
+                            })
+                        summary = self.db.update_summary(msg.key(), **update_columns)
+                        self.logger.debug(f"Consumer message processed. "
+                                          f"Summary updated: {summary}")
         finally:
             self.logger.debug("Consumer loop stopped. Closing consumer...")
             self.consumer.close()  # close down consumer to commit final offsets
+
+    def _produce_message(self,
+                         topic: str,
+                         message_key: int,
+                         message_value: str):
+        """Produce Kafka message.
+
+        If the local producer queue is full, the request will be
+        aborted.
+
+        Args:
+            topic (:obj:`str`):
+                The topic to produce the message to.
+            message_key (:obj:`int`);
+                The Kafka message key.
+            message_value (:obj:`str`);
+                The Kafka message value.
+        """
+
+        try:
+            self.producer.produce(
+                topic,
+                key=str(message_key),
+                value=message_value,
+                on_delivery=self.kafka_delivery_callback
+            )
+        except BufferError:
+            error_msg = (f"Local producer queue is full ({len(self.producer)} "
+                         f"messages awaiting delivery)")
+            self.logger.error(error_msg)
+
+        # Wait up to 1 second for events. Callbacks will
+        # be invoked during this method call.
+        self.producer.poll(1)
+    
+    def kafka_delivery_callback(self, err: KafkaError, msg: Message):
+        """Kafka per-message delivery callback.
+
+        When passed to :meth:`confluent_kafka.Producer.produce` through
+        the :attr:`on_delivery` attribute, this method will be triggered
+        by :meth:`confluent_kafka.Producer.poll` or
+        :meth:`confluent_kafka.Producer.flush` when wither a message has
+        been successfully delivered or the delivery failed (after
+        specified retries).
+
+        Args:
+            err (:obj:`confluent_kafka.KafkaError`):
+                The Kafka error.
+            msg (:obj:`confluent_kafka.Message`):
+                The produced message, or an event.
+        """
+
+        if err:
+            self.logger.debug(f'Message delivery failed: {err}')
+        else:
+            self.logger.debug(f'Message delivered sucessfully: [topic]: '
+                              f'"{msg.topic()}", [partition]: "{msg.partition()}"'
+                              f', [offset]: {msg.offset()}')

@@ -39,7 +39,7 @@ body of the request. The API responds with a unique identifier of the summary, t
    ``summary_id``.
 
 As can be seen in the previous figure, the status of the summary is ``summarizing``,
-and since the summary is not yet ready the ``ouput`` will be ``null``.
+and since the summary is not yet ready the ``output`` will be ``null``.
 
 .. _sec:succesive-get-requests:
 

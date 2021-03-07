@@ -20,7 +20,7 @@
 __version__ = '0.1.10'
 
 from datetime import datetime
-from marshmallow import Schema, fields, pre_dump, pre_load, EXCLUDE
+from marshmallow import Schema, fields, pre_dump, pre_load, EXCLUDE, INCLUDE
 from summary_status import SummaryStatus
 from supported_models import SupportedModel
 from supported_languages import SupportedLanguage
@@ -36,17 +36,17 @@ class Summary():
       to be summarized.
     * output (:obj:`str`): the output once the source has been
       processed, e.g., a summary.
-    * model (:obj:`data_access.supported_models.SupportedModel`): the
+    * model (:obj:`data.supported_models.SupportedModel`): the
       model with wich the summary was generated.
     * params (:obj:`dict`): the parameters with which the summary was
       generated.
-    * status (:obj:`data_access.summary_status.SummaryStatus.COMPLETED`):
+    * status (:obj:`data.summary_status.SummaryStatus.COMPLETED`):
       the current status of the summary.
     * started_at (:obj:`datetime.datetime`): the time when the summary
       was first requested.
     * ended_at (:obj:`datetime.datetime`): the time when the summary
       first finished.
-    * language (:obj:data_access.supported_languages.SupportedLanguage):
+    * language (:obj:data.supported_languages.SupportedLanguage):
       the language of the summary.
     """
 
@@ -194,16 +194,39 @@ class ResponseSchema(Schema):
     class Meta:
         ordered = True
 
-
-class TextPostprocessingConsumedMsgSchema(Schema):
-    """Schema for the consumed messages from the topic :attr:`KafkaTopic.TEXT_POSTPROCESSING`.
-
+class TextEncodingProducedMsgSchema(Schema):
+    """Schema for the produced messages to the topic :attr:`KafkaTopic.TEXT_ENCODING`.
     Fields:
-        text_postprocessed (:obj:`str`):
-            The post-processed text.
+        text_preprocessed (:obj:`str`):
+            The pre-processed text.
+        model (:obj:`str`):
+            The model used to generate the summary.
         params (:obj:`dict`):
-            The valid params, onced checked by the summarizer.
+            The params used in the summary generation.
     """
 
-    text_postprocessed = fields.Str()
+    text_preprocessed = fields.Str(required=True)
+    model = fields.Str(required=True)
     params = fields.Dict(required=True)
+
+class ConsumedMsgSchema(Schema):
+    """Schema for the consumed messages.
+
+    Fields:
+        summary_status (:obj:`str`):
+            The status of the summary.
+        params (:obj:`dict`):
+            The valid params, onced checked by the summarizer.
+        text_preprocessed (:obj:`str`):
+            The preprocessed text.
+        output (:obj:`str`):
+            The summary.
+    """
+
+    summary_status = fields.Str(required=True)
+    params = fields.Dict()
+    text_preprocessed = fields.Str()
+    output = fields.Str()
+
+    class Meta:
+        unknown = INCLUDE

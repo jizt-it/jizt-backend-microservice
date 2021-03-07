@@ -24,7 +24,8 @@ from kafka.kafka_topics import KafkaTopic
 from kafka.kafka_producer import Producer
 from kafka.kafka_consumer import Consumer
 from confluent_kafka import Message, KafkaError, KafkaException
-from schemas import TextPreprocessingConsumedMsgSchema, TextEncodingProducedMsgSchema
+from schemas import TextPreprocessingConsumedMsgSchema, DispatcherProducedMsgSchema
+from summary_status import SummaryStatus
 
 __version__ = '0.1.3'
 
@@ -51,7 +52,7 @@ class TextPreprocessorService:
         self.producer = Producer()
         self.consumer = Consumer()
         self.consumed_msg_schema = TextPreprocessingConsumedMsgSchema()
-        self.produced_msg_schema = TextEncodingProducedMsgSchema()
+        self.produced_msg_schema = DispatcherProducedMsgSchema()
 
     def run(self):
         try:
@@ -76,10 +77,11 @@ class TextPreprocessorService:
                 else:
                     self.logger.debug(f'Message consumed: [key]: {msg.key()}, '
                                       f'[value]: "{msg.value()[:500]} [...]"')
-                    topic = KafkaTopic.TEXT_ENCODING.value
+                    topic = KafkaTopic.DISPATCHER.value
                     message_key = msg.key()
 
                     data = self.consumed_msg_schema.loads(msg.value())
+                    data["summary_status"] = SummaryStatus.PREPROCESSING.value
                     preprocessed_text = TextPreprocessor.preprocess(data.pop('source'))
                     data['text_preprocessed'] = preprocessed_text
                     del data['language']  # just for now ;)

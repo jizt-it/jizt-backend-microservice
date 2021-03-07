@@ -36,15 +36,16 @@ class TextPostprocessingConsumedMsgSchema(Schema):
     params = fields.Dict(required=True)
 
 
-class ReadyProducedMsgSchema(Schema):
-    """Schema for the produced messages to the topic :attr:`KafkaTopic.READY`.
+class DispatcherProducedMsgSchema(Schema):
+    """Schema for the produced messages to the topic :attr:`KafkaTopic.DISPATCHER`.
 
     Fields:
-        text_postprocessed (:obj:`str`):
+        output (:obj:`str`):
             The post-processed text.
         params (:obj:`dict`):
             The valid params, onced checked by the summarizer.
     """
 
-    text_postprocessed = fields.Str(required=True)
+    summary_status = fields.Str(required=True)
+    output = fields.Str(required=True)
     params = fields.Dict(required=True)

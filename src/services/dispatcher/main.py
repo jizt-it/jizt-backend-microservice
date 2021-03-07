@@ -23,7 +23,6 @@ import os
 import re
 import argparse
 import logging
-import hashlib
 from datetime import datetime
 from werkzeug import serving
 from flask import Flask, request
@@ -33,11 +32,12 @@ from confluent_kafka import Message, KafkaError
 from kafka.kafka_topics import KafkaTopic
 from kafka.kafka_producer import Producer
 from kafka.kafka_consumer import ConsumerLoop
-from data_access.summary_status import SummaryStatus
-from data_access.summary_dao_factory import SummaryDAOFactory
-from data_access.schemas import Summary, PlainTextRequestSchema, ResponseSchema
-from data_access.supported_models import SupportedModel
-from data_access.supported_languages import SupportedLanguage
+from kafka.unique_key import get_unique_key
+from data.summary_status import SummaryStatus
+from data.summary_dao_factory import SummaryDAOFactory
+from data.schemas import Summary, PlainTextRequestSchema, ResponseSchema
+from data.supported_models import SupportedModel
+from data.supported_languages import SupportedLanguage
 from pathlib import Path
 
 # Flask config
@@ -82,25 +82,9 @@ class DispatcherService:
             datefmt='%d/%m/%Y %I:%M:%S %p'
         )
         self.logger = logging.getLogger("Dispatcher")
-        logging.getLogger("flask_cors").level = log_level
+        # logging.getLogger("flask_cors").level = log_level
 
-        # PostgreSQL connection data
-        pg_username = None
-        pg_password = None
-        with open((Path(os.environ['PG_SECRET_PATH'])
-                   / Path(os.environ['PG_USERNAME_FILE'])), 'r') as username:
-            pg_username = username.readline().rstrip('\n')
-        with open((Path(os.environ['PG_SECRET_PATH'])
-                   / Path(os.environ['PG_PASSWORD_FILE'])), 'r') as password:
-            pg_password = password.readline().rstrip('\n')
-
-        self.db = SummaryDAOFactory(
-            os.environ['PG_HOST'],
-            os.environ['PG_DBNAME'],
-            pg_username,
-            pg_password,
-            log_level
-        )
+        self.db = self._connect_to_database(log_level)
 
         # Create Kafka Producer and ConsumerLoop
         self.kafka_producer = Producer()
@@ -158,6 +142,35 @@ class DispatcherService:
                               f'"{msg.topic()}", [partition]: "{msg.partition()}"'
                               f', [offset]: {msg.offset()}')
 
+    def _connect_to_database(self, log_level):
+        """Manage connection with the database.
+
+        Args:
+            log_level (:obj:`int`):
+                The log level.
+        
+        Returns:
+            :obj:`SummaryDAOFactory`: an instance to the database.
+        """
+
+        # PostgreSQL connection data
+        pg_username = None
+        pg_password = None
+        with open((Path(os.environ['PG_SECRET_PATH'])
+                   / Path(os.environ['PG_USERNAME_FILE'])), 'r') as username:
+            pg_username = username.readline().rstrip('\n')
+        with open((Path(os.environ['PG_SECRET_PATH'])
+                   / Path(os.environ['PG_PASSWORD_FILE'])), 'r') as password:
+            pg_password = password.readline().rstrip('\n')
+
+        return SummaryDAOFactory(
+            os.environ['PG_HOST'],
+            os.environ['PG_DBNAME'],
+            pg_username,
+            pg_password,
+            log_level
+        )
+
 
 class PlainTextSummary(Resource):
     """Resource for plain-text requests."""
@@ -208,7 +221,7 @@ class PlainTextSummary(Resource):
                           output=None,
                           model=model,
                           params=params,
-                          status=SummaryStatus.SUMMARIZING,
+                          status=SummaryStatus.PREPROCESSING,
                           started_at=datetime.now(),
                           ended_at=None,
                           language=SupportedLanguage.ENGLISH
@@ -239,7 +252,7 @@ class PlainTextSummary(Resource):
         Returns:
             :obj:`dict`: A ``200 OK`` response with a JSON body containing the
             summary. For info on the summary fields, see
-            :class:`data_access.schemas.Summary`.
+            :class:`data.schemas.Summary`.
         Raises:
             :class:`http.client.HTTPException`: If there exists no summary
             with the specified id.
@@ -342,30 +355,6 @@ class Health(Resource):
             :obj:`bool`: whether the consumer is alive or not.
         """
         return not self.dispatcher_service.kafka_consumerloop.stopped()
-
-
-def get_unique_key(source: str, model: str, params: dict) -> str:
-    """Get a unique key for a message.
-
-    This method hashes the string formed by concatenating the
-    :attr:`source`, :attr:`model` and :attr:`param` attributes.
-    SHA-256 algorithm is used.
-
-    Args:
-        source (:obj:`str`):
-            ``source`` attribute in the JSON body of the request.
-        model (:obj:`str`):
-            ``model`` attribute in the JSON body of the request.
-        params (:obj:`params`):
-            ``params`` attribute in the JSON body of the request.
-
-    Returns:
-        :obj:`str`: The unique, SHA-256 ecrypted key.
-    """
-
-    return hashlib.sha256(
-        ("".join([source, model, str(params)])).encode()
-    ).hexdigest()
 
 
 def disable_endpoint_logs():

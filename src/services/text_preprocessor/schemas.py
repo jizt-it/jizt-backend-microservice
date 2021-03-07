@@ -42,10 +42,12 @@ class TextPreprocessingConsumedMsgSchema(Schema):
     language = fields.Str(required=True)
 
 
-class TextEncodingProducedMsgSchema(Schema):
-    """Schema for the produced messages to the topic :attr:`KafkaTopic.TEXT_ENCODING`.
+class DispatcherProducedMsgSchema(Schema):
+    """Schema for the produced messages to the topic :attr:`KafkaTopic.DISPATCHER`.
 
     Fields:
+        summary_status (:obj:`str`):
+            The status of the summary.
         text_preprocessed (:obj:`str`):
             The pre-processed text.
         model (:obj:`str`):
@@ -54,6 +56,7 @@ class TextEncodingProducedMsgSchema(Schema):
             The params used in the summary generation.
     """
 
+    summary_status = fields.Str(required=True)
     text_preprocessed = fields.Str(required=True)
     model = fields.Str(required=True)
     params = fields.Dict(required=True)

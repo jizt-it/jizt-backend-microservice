@@ -24,7 +24,8 @@ from kafka.kafka_topics import KafkaTopic
 from kafka.kafka_producer import Producer
 from kafka.kafka_consumer import Consumer
 from confluent_kafka import Message, KafkaError, KafkaException
-from schemas import TextPostprocessingConsumedMsgSchema, ReadyProducedMsgSchema
+from schemas import TextPostprocessingConsumedMsgSchema, DispatcherProducedMsgSchema
+from summary_status import SummaryStatus
 
 __version__ = '0.1.2'
 
@@ -51,7 +52,7 @@ class TextPostprocessorService:
         self.producer = Producer()
         self.consumer = Consumer()
         self.consumed_msg_schema = TextPostprocessingConsumedMsgSchema()
-        self.produced_msg_schema = ReadyProducedMsgSchema()
+        self.produced_msg_schema = DispatcherProducedMsgSchema()
 
         self.text_postprocessor = TextPostprocessor()
 
@@ -78,13 +79,14 @@ class TextPostprocessorService:
                 else:
                     self.logger.debug(f'Message consumed: [key]: {msg.key()}, '
                                       f'[value]: "{msg.value()[:500]} [...]"')
-                    topic = KafkaTopic.READY.value
+                    topic = KafkaTopic.DISPATCHER.value
                     message_key = msg.key()
 
                     data = self.consumed_msg_schema.loads(msg.value())
                     summary = data.pop('summary')
+                    data["summary_status"] = SummaryStatus.COMPLETED.value
                     postprocessed_text = self.text_postprocessor.postprocess(summary)
-                    data['text_postprocessed'] = postprocessed_text
+                    data['output'] = postprocessed_text
                     message_value = self.produced_msg_schema.dumps(data)
                     self._produce_message(
                         topic,
