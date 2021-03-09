@@ -196,7 +196,7 @@ class ConsumerLoop(StoppableThread):
         # Wait up to 1 second for events. Callbacks will
         # be invoked during this method call.
         self.producer.poll(1)
-    
+
     def kafka_delivery_callback(self, err: KafkaError, msg: Message):
         """Kafka per-message delivery callback.
 

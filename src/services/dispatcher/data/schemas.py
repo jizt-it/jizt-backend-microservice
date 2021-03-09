@@ -194,6 +194,7 @@ class ResponseSchema(Schema):
     class Meta:
         ordered = True
 
+
 class TextEncodingProducedMsgSchema(Schema):
     """Schema for the produced messages to the topic :attr:`KafkaTopic.TEXT_ENCODING`.
     Fields:
@@ -208,6 +209,7 @@ class TextEncodingProducedMsgSchema(Schema):
     text_preprocessed = fields.Str(required=True)
     model = fields.Str(required=True)
     params = fields.Dict(required=True)
+
 
 class ConsumedMsgSchema(Schema):
     """Schema for the consumed messages.

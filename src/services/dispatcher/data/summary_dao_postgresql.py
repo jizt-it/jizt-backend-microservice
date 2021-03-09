@@ -215,7 +215,7 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
                                    content = %s,
                                    content_length = %s
                                WHERE source_id = %s;"""
-        
+
         # The id in id_raw_id_preprocessed is also updated
         # because of ON UPDATE CASCADE
         SQL_UPDATE_SUMMARY_ID = """UPDATE jizt.summary

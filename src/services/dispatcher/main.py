@@ -142,13 +142,14 @@ class DispatcherService:
                               f'"{msg.topic()}", [partition]: "{msg.partition()}"'
                               f', [offset]: {msg.offset()}')
 
-    def _connect_to_database(self, log_level):
+    @classmethod
+    def _connect_to_database(cls, log_level):
         """Manage connection with the database.
 
         Args:
             log_level (:obj:`int`):
                 The log level.
-        
+
         Returns:
             :obj:`SummaryDAOFactory`: an instance to the database.
         """
