@@ -15,16 +15,18 @@
 #
 # For license information on the libraries used, see LICENSE.
 
-"""Kafka Topics."""
+"""Summary status."""
 
 __version__ = '0.1.1'
 
 from enum import Enum
 
 
-class KafkaTopic(Enum):
-    """Kafka Topics."""
+class SummaryStatus(Enum):
+    """Statuses a summary can be in."""
 
-    TEXT_ENCODING = "t5-large-text-encoding-topic"
-    TEXT_SUMMARIZATION = "t5-large-text-summarization-topic"
-    DISPATCHER = 'dispatcher-topic'
+    PREPROCESSING = "preprocessing"
+    ENCODING = "encoding"
+    SUMMARIZING = "summarizing"
+    POSTPROCESSING = "postprocessing"
+    COMPLETED = "completed"

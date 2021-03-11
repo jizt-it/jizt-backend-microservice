@@ -17,7 +17,7 @@
 
 """Kafka Topics."""
 
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
 from enum import Enum
 
@@ -27,3 +27,4 @@ class KafkaTopic(Enum):
 
     TEXT_SUMMARIZATION = "t5-large-text-summarization-topic"
     TEXT_POSTPROCESSING = "text-postprocessing-topic"
+    DISPATCHER = 'dispatcher-topic'

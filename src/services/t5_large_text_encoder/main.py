@@ -26,10 +26,13 @@ from kafka.kafka_topics import KafkaTopic
 from kafka.kafka_producer import Producer
 from kafka.kafka_consumer import Consumer
 from confluent_kafka import Message, KafkaError, KafkaException
-from schemas import TextEncodingsConsumedMsgSchema, TextSumarizationProducedMsgSchema
+from schemas import (TextEncodingsConsumedMsgSchema,
+                     DispatcherProducedMsgSchema,
+                     TextSumarizationProducedMsgSchema)
+from summary_status import SummaryStatus
 from pathlib import Path
 
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 
 TOKENIZER_PATH = (
     Path(os.environ['MODELS_MOUNT_PATH']) / Path(os.environ['TOKENIZER_PATH'])
@@ -62,7 +65,8 @@ class TextEncoderService:
         self.producer = Producer()
         self.consumer = Consumer()
         self.consumed_msg_schema = TextEncodingsConsumedMsgSchema()
-        self.produced_msg_schema = TextSumarizationProducedMsgSchema()
+        self.disp_produced_msg_schema = DispatcherProducedMsgSchema()
+        self.summ_produced_msg_schema = TextSumarizationProducedMsgSchema()
 
     def run(self):
         try:
@@ -88,26 +92,32 @@ class TextEncoderService:
                     self.logger.debug(f'Message consumed: [key]: {msg.key()}, '
                                       f'[value]: "{msg.value()[:500]} [...]"')
 
+                    update_status = {"summary_status": SummaryStatus.ENCODING.value}
+                    self._produce_message(
+                        KafkaTopic.DISPATCHER.value,
+                        msg.key(),
+                        self.disp_produced_msg_schema.dumps(update_status)
+                    )
+
                     data = self.consumed_msg_schema.loads(msg.value())
                     # In the future, when more models are supported, we have
                     # to produce to the proper model Topic
                     data.pop('model')  # figure out what topic to produce to
                     topic = KafkaTopic.TEXT_SUMMARIZATION.value
 
-                    message_key = msg.key()
                     text_preprocessed = data.pop('text_preprocessed')
                     encoded_text = self.text_encoder.encode(text_preprocessed)
                     serialized_encoded_text = pickle.dumps(encoded_text)  # bytes type
                     data['text_encodings'] = serialized_encoded_text
-                    message_value = self.produced_msg_schema.dumps(data)
+                    message_value = self.summ_produced_msg_schema.dumps(data)
                     self._produce_message(
                         topic,
-                        message_key,
+                        msg.key(),
                         message_value
                     )
                     self.logger.debug(
                         f'Message produced: [topic]: "{topic}", '
-                        f'[key]: {message_key}, [value]: '
+                        f'[key]: {msg.key()}, [value]: '
                         f'"{message_value[:500]} [...]"'
                     )
         finally:

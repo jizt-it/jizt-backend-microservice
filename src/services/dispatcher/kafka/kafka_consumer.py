@@ -130,6 +130,7 @@ class ConsumerLoop(StoppableThread):
                             data["model"],
                             data["params"]
                         )
+                        # TODO: update summary count
                         if self.db.summary_exists(id_preprocessed):
                             self.db.update_preprocessed_id(msg.key(), id_preprocessed)
                             self.logger.debug("Preprocessed text already exists. "
@@ -145,8 +146,8 @@ class ConsumerLoop(StoppableThread):
                             self._produce_message(KafkaTopic.TEXT_ENCODING.value,
                                                   msg.key(),
                                                   message_value)
-                            self.logger.debug(f"Preprocessed text does not exist. "
-                                              f"Producing to Encoder.")
+                            self.logger.debug("Preprocessed text does not exist. "
+                                              "Producing to Encoder.")
                     else:
                         # Important: keys must match DB columns
                         update_columns = {"status": data["summary_status"]}

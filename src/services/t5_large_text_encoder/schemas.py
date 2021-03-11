@@ -20,7 +20,7 @@
 import base64
 from marshmallow import Schema, fields
 
-__version__ = '0.1.4'
+__version__ = '0.1.5'
 
 
 class JSONSerializableBytesField(fields.Field):
@@ -83,3 +83,14 @@ class TextSumarizationProducedMsgSchema(Schema):
 
     text_encodings = JSONSerializableBytesField(required=True)
     params = fields.Dict(required=True)
+
+
+class DispatcherProducedMsgSchema(Schema):
+    """Schema for the produced messages to the topic :attr:`KafkaTopic.DISPATCHER`.
+
+    Fields:
+        summary_status (:obj:`str`):
+            The status of the summary.
+    """
+
+    summary_status = fields.Str(required=True)

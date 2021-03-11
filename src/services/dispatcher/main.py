@@ -17,7 +17,7 @@
 
 """Dispatcher REST API v1."""
 
-__version__ = '0.1.7'
+__version__ = '0.1.8'
 
 import os
 import re
@@ -193,6 +193,7 @@ class PlainTextSummary(Resource):
         Returns:
             :obj:`dict`: A 202 Accepted response with a JSON body containing the
             summary id, e.g., {'summary_id': 73c3de4175449987ef6047f6e0bea91c1036a8599b}.
+
         Raises:
             :class:`http.client.HTTPException`: If the request body
             JSON is not valid.
@@ -250,10 +251,15 @@ class PlainTextSummary(Resource):
         Gives a response with the summary status and, in case the summary
         is completed, the output text, e.g. the summary.
 
+        Args:
+            summary_id (:obj:`str`):
+                The id of the summary requested.
+
         Returns:
             :obj:`dict`: A ``200 OK`` response with a JSON body containing the
             summary. For info on the summary fields, see
             :class:`data.schemas.Summary`.
+
         Raises:
             :class:`http.client.HTTPException`: If there exists no summary
             with the specified id.
@@ -262,6 +268,11 @@ class PlainTextSummary(Resource):
         summary = self.dispatcher_service.db.get_summary(summary_id)
         if summary is None:
             abort(404, errors=f'Summary {summary_id} not found.')  # NOT FOUND
+        # The id of the summary retrieved from the database corresponds to the
+        # preprocessed id. This id might not match the parameter summary_id, since
+        # this is the raw id. Therefore, we make sure the returned id matches the
+        # id requested (raw id).
+        summary.id_ = summary_id
         response = self.ok_response_schema.dump(summary)
         return response, 200  # OK
 

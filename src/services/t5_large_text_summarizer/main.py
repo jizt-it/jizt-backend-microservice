@@ -27,11 +27,13 @@ from kafka.kafka_producer import Producer
 from kafka.kafka_consumer import Consumer
 from confluent_kafka import Message, KafkaError, KafkaException
 from schemas import (TextSummarizationConsumedMsgSchema,
+                     DispatcherProducedMsgSchema,
                      TextPostprocessingProducedMsgSchema)
 from default_params import DefaultParams
+from summary_status import SummaryStatus
 from pathlib import Path
 
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 
 TOKENIZER_PATH = (
     Path(os.environ['MODELS_MOUNT_PATH']) / Path(os.environ['TOKENIZER_PATH'])
@@ -68,7 +70,8 @@ class TextSummarizerService:
         self.producer = Producer()
         self.consumer = Consumer()
         self.consumed_msg_schema = TextSummarizationConsumedMsgSchema()
-        self.produced_msg_schema = TextPostprocessingProducedMsgSchema()
+        self.disp_produced_msg_schema = DispatcherProducedMsgSchema()
+        self.post_produced_msg_schema = TextPostprocessingProducedMsgSchema()
 
     def run(self):
         try:
@@ -93,10 +96,16 @@ class TextSummarizerService:
                 else:
                     self.logger.debug(f'Message consumed: [key]: {msg.key()}, '
                                       f'[value]: "{msg.value()[:500]} [...]"')
-                    topic = KafkaTopic.TEXT_POSTPROCESSING.value
-                    message_key = msg.key()
+
+                    update_status = {"summary_status": SummaryStatus.SUMMARIZING.value}
+                    self._produce_message(
+                        KafkaTopic.DISPATCHER.value,
+                        msg.key(),
+                        self.disp_produced_msg_schema.dumps(update_status)
+                    )
 
                     data = self.consumed_msg_schema.loads(msg.value())
+                    topic = KafkaTopic.TEXT_POSTPROCESSING.value
                     serialized_encoded_text = data.pop('text_encodings')
                     encoded_text = pickle.loads(serialized_encoded_text)
 
@@ -104,16 +113,16 @@ class TextSummarizerService:
                     data['params'] = params  # update params to keep only the valid ones
                     summarized_text = self.summarizer.summarize(encoded_text, **params)
                     data['summary'] = summarized_text
-                    message_value = self.produced_msg_schema.dumps(data)
+                    message_value = self.post_produced_msg_schema.dumps(data)
                     self._produce_message(
                         topic,
-                        message_key,
+                        msg.key(),
                         message_value
                     )
                     self.logger.debug(
                         f'Message produced: [topic]: "{topic}", '
-                        f'[key]: {message_key}, [value]: '
-                        f'"{message_value[:500]} [...]"'
+                        f'[key]: {msg.key()}, [value]: '
+                        f'"{message_value[:500]} [...]'
                     )
         finally:
             self.logger.debug("Consumer loop stopped. Closing consumer...")

@@ -17,7 +17,7 @@
 
 """Summary Data Access Object (DAO) Implementation."""
 
-__version__ = '0.1.4'
+__version__ = '0.1.5'
 
 import logging
 import psycopg2
@@ -221,6 +221,12 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
         SQL_UPDATE_SUMMARY_ID = """UPDATE jizt.summary
                                    SET summary_id = %s
                                    WHERE summary_id = %s;"""
+
+        # We insert the binding (new_summary_id -> new_summary_id) so that a summary
+        # can be also retrieved with its preprocessed id
+        SQL_INSERT_PREPROCESSED_ID = """INSERT INTO jizt.id_raw_id_preprocessed
+                                        VALUES (%s, %s);"""
+
         conn = None
         try:
             conn = self._connect()
@@ -230,6 +236,8 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
                 cur.execute(SQL_UPDATE_SOURCE, (new_source_id, new_source,
                                                 len(new_source), old_source_id))
                 cur.execute(SQL_UPDATE_SUMMARY_ID, (new_summary_id, old_summary_id))
+                cur.execute(SQL_INSERT_PREPROCESSED_ID, (new_summary_id,
+                                                         new_summary_id))
                 conn.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.logger.error(error)
