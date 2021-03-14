@@ -17,7 +17,7 @@
 
 """Kafka Consumer."""
 
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
 import logging
 import socket
@@ -130,7 +130,6 @@ class ConsumerLoop(StoppableThread):
                             data["model"],
                             data["params"]
                         )
-                        # TODO: update summary count
                         if self.db.summary_exists(id_preprocessed):
                             self.db.update_preprocessed_id(msg.key(), id_preprocessed)
                             self.logger.debug("Preprocessed text already exists. "
@@ -148,6 +147,8 @@ class ConsumerLoop(StoppableThread):
                                                   message_value)
                             self.logger.debug("Preprocessed text does not exist. "
                                               "Producing to Encoder.")
+                        count = self.db.increment_summary_count(msg.key())
+                        self.logger.debug(f"Current summary count: {count}.")
                     else:
                         # Important: keys must match DB columns
                         update_columns = {"status": data["summary_status"]}

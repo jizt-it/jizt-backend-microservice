@@ -17,7 +17,7 @@
 
 """Summary Data Access Object (DAO) Interface."""
 
-__version__ = '0.1.1'
+__version__ = '0.1.2'
 
 from schemas import Summary
 
@@ -121,4 +121,15 @@ class SummaryDAOInterface:
 
         Returns:
             :obj:`bool`: Whether the source exists or not.
+        """
+
+    def increment_summary_count(self, id_: str):
+        """Increments the summary count, i.e., the times a summary has been requested.
+
+        Args:
+            id_ (:obj:`str`):
+                The summary id.
+
+        Returns:
+            :obj:`int`: the summary count.
         """

@@ -17,7 +17,7 @@
 
 """Summary Data Access Object (DAO) Implementation."""
 
-__version__ = '0.1.5'
+__version__ = '0.1.6'
 
 import logging
 import psycopg2
@@ -276,14 +276,14 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
     def summary_exists(self, id_: str):
         """See base class."""
 
-        SQL = """SELECT id_raw, id_preprocessed FROM jizt.id_raw_id_preprocessed
-                 WHERE id_raw = %s OR id_preprocessed = %s;"""
+        SQL = """SELECT id_raw FROM jizt.id_raw_id_preprocessed
+                 WHERE id_raw = %s;"""
 
         conn = None
         try:
             conn = self._connect()
             with conn.cursor() as cur:
-                cur.execute(SQL, (id_, id_))
+                cur.execute(SQL, (id_,))
                 return cur.fetchone() is not None
         except (Exception, psycopg2.DatabaseError) as error:
             self.logger.error(error)
@@ -304,6 +304,28 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
                 source_id = self._get_unique_key(source)
                 cur.execute(SQL, (source_id,))
                 return cur.fetchone() is not None
+        except (Exception, psycopg2.DatabaseError) as error:
+            self.logger.error(error)
+        finally:
+            if conn is not None:
+                conn.close()
+
+    def increment_summary_count(self, id_: str):
+        """See base class."""
+
+        SQL = """UPDATE jizt.summary
+                 SET request_count = request_count + 1
+                 FROM jizt.id_raw_id_preprocessed
+                 WHERE id_raw = %s AND id_preprocessed = summary_id
+                 RETURNING request_count;"""
+
+        conn = None
+        try:
+            conn = self._connect()
+            with conn.cursor() as cur:
+                cur.execute(SQL, (id_,))
+                conn.commit()
+                return cur.fetchone()[0]
         except (Exception, psycopg2.DatabaseError) as error:
             self.logger.error(error)
         finally:

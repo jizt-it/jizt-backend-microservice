@@ -98,7 +98,8 @@ CREATE TABLE summary (
     ended_at            TIMESTAMPTZ,
     language_tag        TEXT NOT NULL
         CONSTRAINT FK_language_tag
-        REFERENCES language(language_tag) ON UPDATE CASCADE
+        REFERENCES language(language_tag) ON UPDATE CASCADE,
+    request_count       INTEGER NOT NULL CHECK (request_count >= 0) DEFAULT 0
 );
 
 CREATE TABLE id_raw_id_preprocessed (

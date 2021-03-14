@@ -17,7 +17,7 @@
 
 """Dispatcher REST API v1."""
 
-__version__ = '0.1.8'
+__version__ = '0.1.9'
 
 import os
 import re
@@ -216,6 +216,8 @@ class PlainTextSummary(Resource):
             self.dispatcher_service.logger.debug(
                 f'Summary already exists: {summary}'
             )
+            count = self.dispatcher_service.db.increment_summary_count(message_key)
+            self.dispatcher_service.logger.debug(f"Current summary count: {count}.")
         else:
             summary = Summary(
                           id_=message_key,

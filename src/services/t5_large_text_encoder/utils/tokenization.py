@@ -17,7 +17,7 @@
 
 """Tokenization utilities."""
 
-__version__ = '0.0.3'
+__version__ = '0.0.4'
 
 from nltk.tokenize import RegexpTokenizer
 from blingfire import text_to_sentences
@@ -68,12 +68,12 @@ def sentence_tokenize(text: str,
         # Also, take acronyms as groups, e.g., U.K., U.S., B.C., D.C., etc.
         tokenizer = RegexpTokenizer(r'[^.!?]+(?:(?:[A-Z][.])+|[.!?]+)+[^A-Z]*')
 
+        text = ' '.join(text.split())  # remove '\n', '\t', etc.
+
     # if there's no final period, add it (this makes the assumption that the last
     # sentence is not interrogative or exclamative, i.e., ends with '?' or '!')
     if text[-1] not in ('.', '?', '!'):
         text += '.'
-
-    text = ' '.join(text.split())  # remove '\n', '\t', etc.
 
     # split sentences with the regexp and ensure there's 1 whitespace at most
     sentences = ' '.join(tokenizer.tokenize(text)).replace('  ', ' ')

@@ -36,7 +36,7 @@ dispatcher:
   ports:
     svc: 5000
     container: 5000
-  image: eu.gcr.io/jizt-299516/dispatcher:0.0.89
+  image: eu.gcr.io/jizt-299516/dispatcher:0.0.96
 
 # Configuration for ConfigMap/Secret containing
 # PostgreSQL connection details
@@ -56,7 +56,7 @@ textPreprocessor:
   ports:
     svc: 5000
     container: 5000
-  image: eu.gcr.io/jizt-299516/text-preprocessor:0.0.13
+  image: eu.gcr.io/jizt-299516/text-preprocessor:0.0.14
 
 # Configuration for the Text Encoder microservice
 t5LargeTextEncoder:
@@ -103,7 +103,7 @@ textPostprocessor:
   ports:
     svc: 5000
     container: 5000
-  image: eu.gcr.io/jizt-299516/text-postprocessor:0.0.19
+  image: eu.gcr.io/jizt-299516/text-postprocessor:0.0.20
 
 
 #################################
