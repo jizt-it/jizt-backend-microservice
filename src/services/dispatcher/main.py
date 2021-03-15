@@ -17,7 +17,7 @@
 
 """Dispatcher REST API v1."""
 
-__version__ = '0.1.9'
+__version__ = '0.1.10'
 
 import os
 import re
@@ -216,13 +216,14 @@ class PlainTextSummary(Resource):
             summary = self.dispatcher_service.db.get_summary(message_key)
             self.dispatcher_service.logger.debug(
                 f'Summary already exists: [id] {summary.id_}, [source] '
-                f'{summary.source[:50]}, [output] {summary.output[:50]}, [model] '
-                f'{summary.model}, [params] {summary.params}, [status] '
+                f'{summary.source[:50]}, [output] '
+                f'{summary.output[:50] if summary.output is not None else None}, '
+                f'[model] {summary.model}, [params] {summary.params}, [status] '
                 f'{summary.status}, [started_at] {summary.started_at}, [ended_at] '
                 f'{summary.ended_at}, [language] {summary.language}'
             )
             if cache:
-                self.dispatcher_service.db.update_cache_true(message_key)
+                self.dispatcher_service.db.update_cache_true(message_key);
             count = self.dispatcher_service.db.increment_summary_count(message_key)
             self.dispatcher_service.logger.debug(f"Current summary count: {count}.")
         else:
