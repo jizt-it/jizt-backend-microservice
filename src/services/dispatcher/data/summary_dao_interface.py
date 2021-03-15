@@ -167,3 +167,14 @@ class SummaryDAOInterface:
             id_ (:obj:`str`):
                 The raw id (not to be confused with the preprocessed id).
         """
+
+    def cleanup_cache(self, older_than_seconds: int):
+        """Delete summaries with cache set to ``False`` with a certain age in seconds.
+
+        Args:
+            older_than_seconds (:obj:`int`):
+                Maximum age in seconds of that completed summaries with cache set to
+                ``False`` can have not to be deleted, i.e., completed summaries with
+                cache set to ``False``and requested before ``older_than_seconds``
+                seconds will be deleted when calling this method.
+        """

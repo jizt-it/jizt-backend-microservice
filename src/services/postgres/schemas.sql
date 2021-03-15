@@ -108,7 +108,7 @@ CREATE TABLE id_raw_id_preprocessed (
         CONSTRAINT FK_id_preprocessed
         REFERENCES summary ON DELETE CASCADE ON UPDATE CASCADE,
     cache               BOOLEAN NOT NULL DEFAULT TRUE,
-    last_modified       TIMESTAMPTZ NOT NULL,
+    last_accessed       TIMESTAMPTZ NOT NULL,
     PRIMARY KEY(id_raw, id_preprocessed)
 );
 

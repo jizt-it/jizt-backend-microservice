@@ -223,7 +223,7 @@ class PlainTextSummary(Resource):
                 f'{summary.ended_at}, [language] {summary.language}'
             )
             if cache:
-                self.dispatcher_service.db.update_cache_true(message_key);
+                self.dispatcher_service.db.update_cache_true(message_key)
             count = self.dispatcher_service.db.increment_summary_count(message_key)
             self.dispatcher_service.logger.debug(f"Current summary count: {count}.")
         else:

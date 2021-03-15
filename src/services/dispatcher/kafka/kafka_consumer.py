@@ -32,6 +32,15 @@ from data.summary_status import SummaryStatus
 from data.summary_dao_factory import SummaryDAOFactory
 from data.schemas import ConsumedMsgSchema, TextEncodingProducedMsgSchema
 
+# Interval in seconds to delete old, completed summaries that
+# have cache to False and have not been requested through an
+# HTTP GET request.
+CACHE_CLEANUP_INTERVAL_SECONDS = 1 * 60  # 1 minute
+
+# Completed summaries with cache set to False and requested before
+# these seconds will be deleted.
+OLDER_THAN_SECONDS = 4 * 60  # 4 min
+
 
 class StoppableThread(Thread):
     """Stoppable Thread.
@@ -102,8 +111,12 @@ class ConsumerLoop(StoppableThread):
             self.consumer.subscribe(topics_to_subscribe)
             self.logger.debug(f'Consumer subscribed to topic(s): '
                               f'{topics_to_subscribe}')
-
+            previous_cache_cleanup = datetime.now()
             while not self.stopped():
+                if ((datetime.now() - previous_cache_cleanup).total_seconds() >
+                        CACHE_CLEANUP_INTERVAL_SECONDS):
+                    self.db.cleanup_cache(OLDER_THAN_SECONDS)
+                    previous_cache_cleanup = datetime.now()
                 msg = self.consumer.poll(timeout=1.0)
                 if msg is None:
                     continue
