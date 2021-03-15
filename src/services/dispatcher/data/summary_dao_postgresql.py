@@ -86,7 +86,7 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
             if conn is not None:
                 conn.close()
 
-    def insert_summary(self, summary: Summary):
+    def insert_summary(self, summary: Summary, cache: bool):
         """See base class."""
 
         SQL_GET_SOURCE = """SELECT source_id
@@ -100,7 +100,7 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
                                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"""
 
         SQL_INSERT_ID = """INSERT INTO jizt.id_raw_id_preprocessed
-                           VALUES (%s, %s);"""
+                           VALUES (%s, %s, %s);"""
 
         conn = None
         try:
@@ -124,7 +124,7 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
                      summary.status, summary.started_at,
                      summary.ended_at, summary.language)
                 )
-                cur.execute(SQL_INSERT_ID, (summary.id_, summary.id_))
+                cur.execute(SQL_INSERT_ID, (summary.id_, summary.id_, cache))
                 conn.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.logger.error(error)
@@ -132,11 +132,13 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
             if conn is not None:
                 conn.close()
 
-    def delete_summary(self, id_: str, delete_source: bool = False):
+    def delete_summary(self,
+                       id_: str,
+                       delete_source: bool = False):
         """See base class."""
 
         # Because of ON DELETE CASCADE, this will delete both the
-        # source and the summary
+        # source the summary
         SQL_DELETE_ALSO_SOURCE = """DELETE FROM jizt.source
                                     WHERE source_id = (
                                         SELECT source_id FROM jizt.summary
@@ -225,7 +227,10 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
         # We insert the binding (new_summary_id -> new_summary_id) so that a summary
         # can be also retrieved with its preprocessed id
         SQL_INSERT_PREPROCESSED_ID = """INSERT INTO jizt.id_raw_id_preprocessed
-                                        VALUES (%s, %s);"""
+                                        (id_raw, id_preprocessed, cache)
+                                        SELECT %s, %s, cache
+                                        FROM jizt.id_raw_id_preprocessed
+                                        WHERE id_raw = %s;"""
 
         conn = None
         try:
@@ -237,7 +242,8 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
                                                 len(new_source), old_source_id))
                 cur.execute(SQL_UPDATE_SUMMARY_ID, (new_summary_id, old_summary_id))
                 cur.execute(SQL_INSERT_PREPROCESSED_ID, (new_summary_id,
-                                                         new_summary_id))
+                                                         new_summary_id,
+                                                         old_summary_id))
                 conn.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.logger.error(error)
@@ -245,12 +251,19 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
             if conn is not None:
                 conn.close()
 
-    def update_preprocessed_id(self, raw_id: str, new_preprocessed_id: str):
+    def update_preprocessed_id(self,
+                               raw_id: str,
+                               new_preprocessed_id: str):
         """See base class."""
 
-        SQL_UPDATE = """UPDATE jizt.id_raw_id_preprocessed
-                        SET id_preprocessed = %s
-                        WHERE id_raw = %s;"""
+        SQL_UPDATE_ID = """UPDATE jizt.id_raw_id_preprocessed
+                           SET id_preprocessed = %s
+                           WHERE id_raw = %s
+                           RETURNING cache;"""
+
+        SQL_UPDATE_CACHE = """UPDATE jizt.id_raw_id_preprocessed
+                              SET cache = %s
+                              WHERE id_raw = %s AND cache = FALSE;"""
 
         # Because of ON DELETE CASCADE, this will delete both the
         # source and the summary
@@ -264,8 +277,34 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
         try:
             conn = self._connect()
             with conn.cursor() as cur:
-                cur.execute(SQL_UPDATE, (new_preprocessed_id, raw_id))
-                cur.execute(SQL_DELETE_SUMMARY_OLD, (raw_id,))
+                cur.execute(SQL_UPDATE_ID, (new_preprocessed_id, raw_id))
+                cache = cur.fetchone()
+                if cache is not None:
+                    cur.execute(SQL_UPDATE_CACHE, (cache[0], new_preprocessed_id))
+                    cur.execute(SQL_DELETE_SUMMARY_OLD, (raw_id,))
+                conn.commit()
+        except (Exception, psycopg2.DatabaseError) as error:
+            self.logger.error(error)
+        finally:
+            if conn is not None:
+                conn.close()
+
+    def update_cache_true(self, id_: str):
+        """See base class."""
+
+        SQL = """UPDATE jizt.id_raw_id_preprocessed
+                 SET cache = TRUE
+                 WHERE CACHE = FALSE AND (id_raw = %s OR id_raw IN (
+                     SELECT id_preprocessed
+                     FROM jizt.id_raw_id_preprocessed
+                     WHERE id_raw = %s
+                 ));"""
+
+        conn = None
+        try:
+            conn = self._connect()
+            with conn.cursor() as cur:
+                cur.execute(SQL, (id_, id_))
                 conn.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.logger.error(error)
@@ -326,6 +365,43 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
                 cur.execute(SQL, (id_,))
                 conn.commit()
                 return cur.fetchone()[0]
+        except (Exception, psycopg2.DatabaseError) as error:
+            self.logger.error(error)
+        finally:
+            if conn is not None:
+                conn.close()
+
+    def delete_if_not_cache(self, id_: str):
+        """See base class."""
+
+        SQL_DELETE = """DELETE FROM jizt.id_raw_id_preprocessed
+                        WHERE id_raw = %s AND cache = FALSE
+                        RETURNING id_preprocessed;"""
+
+        # Check if the preprocessed id has to be cached
+        SQL_CACHE = """SELECT cache FROM jizt.id_raw_id_preprocessed
+                       WHERE id_raw = %s;"""
+
+        # Because of ON DELETE CASCADE, this will delete both the
+        # source the summary
+        SQL_DELETE_SUMMARY = """DELETE FROM jizt.source
+                                WHERE source_id = (
+                                    SELECT source_id FROM jizt.summary
+                                    WHERE summary_id = %s
+                                );"""
+
+        conn = None
+        try:
+            conn = self._connect()
+            with conn.cursor() as cur:
+                cur.execute(SQL_DELETE, (id_,))
+                preprocessed_id = cur.fetchone()
+                if preprocessed_id is not None:
+                    cur.execute(SQL_CACHE, preprocessed_id)  # preprocessed_id is a tuple
+                    cache = cur.fetchone()
+                    if cache is not None and not cache[0]:
+                        cur.execute(SQL_DELETE_SUMMARY, preprocessed_id)
+                conn.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.logger.error(error)
         finally:

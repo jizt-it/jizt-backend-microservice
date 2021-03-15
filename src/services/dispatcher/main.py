@@ -206,6 +206,7 @@ class PlainTextSummary(Resource):
         source = loaded_data['source']
         model = SupportedModel(loaded_data['model'])
         params = loaded_data['params']
+        cache = loaded_data.pop('cache')
 
         message_key = get_unique_key(source, model.value, params)  # summary id
 
@@ -214,8 +215,14 @@ class PlainTextSummary(Resource):
         if self.dispatcher_service.db.summary_exists(message_key):
             summary = self.dispatcher_service.db.get_summary(message_key)
             self.dispatcher_service.logger.debug(
-                f'Summary already exists: {summary}'
+                f'Summary already exists: [id] {summary.id_}, [source] '
+                f'{summary.source[:50]}, [output] {summary.output[:50]}, [model] '
+                f'{summary.model}, [params] {summary.params}, [status] '
+                f'{summary.status}, [started_at] {summary.started_at}, [ended_at] '
+                f'{summary.ended_at}, [language] {summary.language}'
             )
+            if cache:
+                self.dispatcher_service.db.update_cache_true(message_key)
             count = self.dispatcher_service.db.increment_summary_count(message_key)
             self.dispatcher_service.logger.debug(f"Current summary count: {count}.")
         else:
@@ -230,10 +237,10 @@ class PlainTextSummary(Resource):
                           ended_at=None,
                           language=SupportedLanguage.ENGLISH
                       )
-            self.dispatcher_service.db.insert_summary(summary)
+            self.dispatcher_service.db.insert_summary(summary, cache)
 
             topic = KafkaTopic.TEXT_PREPROCESSING.value
-            message_value = self.request_schema.dumps(data)
+            message_value = self.request_schema.dumps(loaded_data)
             self._produce_message(topic,
                                   message_key,
                                   message_value)
@@ -270,6 +277,10 @@ class PlainTextSummary(Resource):
         summary = self.dispatcher_service.db.get_summary(summary_id)
         if summary is None:
             abort(404, errors=f'Summary {summary_id} not found.')  # NOT FOUND
+        # Delete summary if the user requested their summary not to be cached,
+        # i.e., not to be permanently stored in the database.
+        if summary.status == SummaryStatus.COMPLETED.value:
+            self.dispatcher_service.db.delete_if_not_cache(summary_id)
         # The id of the summary retrieved from the database corresponds to the
         # preprocessed id. This id might not match the parameter summary_id, since
         # this is the raw id. Therefore, we make sure the returned id matches the

@@ -98,6 +98,9 @@ class PlainTextRequestSchema(Schema):
             The params used in the summary generation.
         language (:obj:`str`):
             The language of the text.
+        cache (:obj:`bool`):
+            Whether the summary must be cached or not. A cached summary implies that
+            it will be permanently stored in the database.
     """
 
     # length could be limited with validate=Length(max=600)
@@ -105,6 +108,7 @@ class PlainTextRequestSchema(Schema):
     model = fields.Str(required=True)
     params = fields.Dict(required=True)
     language = fields.Str(required=True)
+    cache = fields.Bool(required=True)
 
     @pre_load
     def validate_and_set_defaults(self, data, many, **kwargs):
@@ -128,6 +132,11 @@ class PlainTextRequestSchema(Schema):
             or "language" in data and (data["language"] is None
                                        or data["language"] not in supp_languages)):
             data["language"] = SupportedLanguage.ENGLISH.value
+
+        # Check cache
+        if ("cache" not in data or "cache" in data and data["cache"] is None):
+            data["cache"] = True
+
         return data
 
     class Meta:

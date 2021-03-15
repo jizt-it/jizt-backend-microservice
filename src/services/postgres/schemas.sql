@@ -107,6 +107,7 @@ CREATE TABLE id_raw_id_preprocessed (
     id_preprocessed     CHAR(64) NOT NULL
         CONSTRAINT FK_id_preprocessed
         REFERENCES summary ON DELETE CASCADE ON UPDATE CASCADE,
+    cache               BOOLEAN NOT NULL DEFAULT TRUE,
     PRIMARY KEY(id_raw, id_preprocessed)
 );
 
@@ -117,13 +118,13 @@ INSERT INTO language
 VALUES (DEFAULT, 'English', 'en');
 
 INSERT INTO vendor
-VALUES (DEFAULT, 'Hugging Face', 'https://huggingface.co/');
+VALUES (DEFAULT, 'Hugging Face', 'https://huggingface.co');
 
 INSERT INTO model_family
-VALUES (DEFAULT, 'T5', '{ "Colin Raffel","Noam Shazeer", "Adam Roberts",
+VALUES (DEFAULT, 'T5', '{"Colin Raffel", "Noam Shazeer", "Adam Roberts",
                  "Katherine Lee", "Sharan Narang", "Michael Matena",
                  "Yanqi Zhou", "Wei Li", "Peter J. Liu"}',
-        '{"Google"}', '2019-10-23', 'https://arxiv.org/abs/1910.10683');
+                 '{"Google"}', '2019-10-23', 'https://arxiv.org/abs/1910.10683');
 
 INSERT INTO model
 VALUES (DEFAULT, 't5-large', 'T5', '{"summarization", "translation"}',
