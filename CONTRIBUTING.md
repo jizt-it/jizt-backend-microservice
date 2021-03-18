@@ -29,8 +29,8 @@ There are numerous ways in which you can contribute to the project. For example:
 
 ## How to request to add your code to the project?
 
-To contribute to the project with your code, first create a Pull request and make the
-appropriate modifications or additions.
+To contribute to the project with your code, first create a Pull request and make
+the appropriate modifications or additions.
 
 Alternatively, you can do a manual Fork, modify the code, and later open a Pull
 request.
