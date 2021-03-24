@@ -1,6 +1,6 @@
 region               = "eu-west-2"
 cluster_name         = "jizt-cluster"
-ec2_instance_type    = "t3.small"
+ec2_instance_type    = "t4g.medium"
 public_subnet_count  = 1
 private_subnet_count = 1
 asg_desired_capacity = 1

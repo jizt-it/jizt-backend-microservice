@@ -16,9 +16,8 @@ rules:
     verbs:
       - get
       - list
-      - watch
       - create
-      - update
+      - patch
       - delete
   - apiGroups:
       - ''
@@ -61,7 +60,6 @@ rules:
       - extensions
     resources:
       - deployments
-      - replicasets
     verbs:
       - get
       - list
@@ -137,10 +135,10 @@ data:
     backrest_aws_s3_verify_tls: "true"
     backrest_port: "2022"
     badger: "false"
-    ccp_image_prefix: "eu.gcr.io/jizt-299516/crunchydata"
+    ccp_image_prefix: "gcr.io/jizt-308512/crunchydata"
     ccp_image_pull_secret: ""
     ccp_image_pull_secret_manifest: ""
-    ccp_image_tag: "centos7-4.5.1"
+    ccp_image_tag: "centos8-13.2-4.6.1"
     create_rbac: "true"
     crunchy_debug: "false"
     db_name: "jizt-db"
@@ -167,21 +165,21 @@ data:
     pgo_admin_password: ""  # TODO: set password
     pgo_admin_perms: "*"
     pgo_admin_role_name: "pgoadmin"
-    pgo_admin_username: ""  # TODO: set admin username
+    pgo_admin_username: "admin"
     pgo_apiserver_port: "8443"
     pgo_apiserver_url: "https://postgres-operator"
     pgo_client_cert_secret: "pgo.tls"
     pgo_client_container_install: "false"
     pgo_client_install: "true"
-    pgo_client_version: "centos7-4.5.1"
+    pgo_client_version: "4.6.1"
     pgo_cluster_admin: "false"
     pgo_disable_eventing: "false"
     pgo_disable_tls: "false"
-    pgo_image_prefix: "eu.gcr.io/jizt-299516/crunchydata"
+    pgo_image_prefix: "gcr.io/jizt-308512/crunchydata"
     pgo_image_pull_secret: ""
     pgo_image_pull_secret_manifest: ""
-    pgo_image_tag: "centos7-4.5.1"
-    pgo_installation_name: "pgo-installation"
+    pgo_image_tag: "centos8-4.6.1"
+    pgo_installation_name: "devtest"
     pgo_noauth_routes: ""
     pgo_operator_namespace: "pgo"
     pgo_tls_ca_store: ""
@@ -270,7 +268,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: pgo-deploy
-          image: eu.gcr.io/jizt-299516/crunchydata/pgo-deployer:centos7-4.5.1
+          image: gcr.io/jizt-308512/crunchydata/pgo-deployer:centos8-4.6.1
           imagePullPolicy: IfNotPresent
           env:
             - name: DEPLOY_ACTION

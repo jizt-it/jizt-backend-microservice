@@ -24,5 +24,5 @@ cat << EOF | helm install $STRIMZI_RELEASE_NAME strimzi/strimzi-kafka-operator \
 "$@" \
 -f -
     watchNamespaces: ["$JIZT_NAMESPACE"]
-    imageRepositoryOverride: "eu.gcr.io/jizt-299516"
+    imageRepositoryOverride: "gcr.io/jizt-308512"
 EOF
