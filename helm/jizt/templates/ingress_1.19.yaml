@@ -7,6 +7,10 @@ metadata:
     app: {{ include "jizt.name" . }}
     chart: {{ include "jizt.chart" . }}
     release: {{ $.Release.Name }}
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: api-jizt-it
+    networking.gke.io/managed-certificates: jizt-tls
 spec:
   rules:
   - host: {{ .Values.ingress.hostname }}

@@ -11,7 +11,7 @@ namespace: "default"
 ingress:
   hostname: "api.jizt.it"
   paths:
-    v1: "/v1/summaries/*"
+    v1: "/v1/summaries"
 
 # General replica count for ALL the deployments
 replicaCount: 1
