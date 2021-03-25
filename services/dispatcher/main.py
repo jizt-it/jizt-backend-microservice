@@ -73,7 +73,7 @@ class DispatcherService:
         self.cors = CORS(self.app, resources={
             # Origins examples: http://jizt.it, https://app.jizt.it, http://jizt.it/hi
             r"*": {"origins": r"https?://\w*\.?jizt\.it/?.*",
-                   "allow_headers": ['Content-Type']}
+                   "allow_headers": ['Content-Type', 'Access-Control-Allow-Origin']}
         })
 
         logging.basicConfig(
@@ -82,6 +82,7 @@ class DispatcherService:
             datefmt='%d/%m/%Y %I:%M:%S %p'
         )
         self.logger = logging.getLogger("Dispatcher")
+        # Comment out next line to turn on flask_cors logs
         # logging.getLogger("flask_cors").level = log_level
 
         self.db = self._connect_to_database(log_level)
