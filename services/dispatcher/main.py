@@ -73,7 +73,7 @@ class DispatcherService:
         self.cors = CORS(self.app, resources={
             # Origins examples: http://jizt.it, https://app.jizt.it, http://jizt.it/hi
             r"*": {"origins": r"https?://\w*\.?jizt\.it/?.*",
-                   "allow_headers": ['Content-Type', 'Access-Control-Allow-Origin']}
+                   "allow_headers": ['Content-Type']}
         })
 
         logging.basicConfig(
