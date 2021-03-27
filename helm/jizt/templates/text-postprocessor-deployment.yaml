@@ -19,4 +19,11 @@ spec:
         args: ["-d"]  # uncomment for debug mode
         ports:
         - containerPort: {{ .Values.textPostprocessor.ports.container }}
+        resources:
+          requests:
+            memory: {{ .Values.textPostprocessor.requests.memory }}
+            cpu: {{ .Values.textPostprocessor.requests.cpu }}
+          limits:
+            memory: {{ .Values.textPostprocessor.limits.memory }}
+            cpu: {{ .Values.textPostprocessor.limits.cpu }}
 {{- end -}}

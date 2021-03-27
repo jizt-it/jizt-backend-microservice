@@ -8,10 +8,10 @@ description: A Helm library chart for deploying jizt with Kubernetes
 type: library
 
 # Chart version
-version: 0.0.1
+version: 0.0.2
 
 # Version number of the application being deployed
-appVersion: 0.0.1
+appVersion: 0.0.2
 
 home: https://www.jizt.it
   - https://github.com/dmlls/jizt

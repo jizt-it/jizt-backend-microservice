@@ -40,14 +40,21 @@ spec:
           httpGet:
             path: /healthz
             port: {{ .Values.dispatcher.ports.container }}
-          initialDelaySeconds: 5
+          initialDelaySeconds: 10
           periodSeconds: 15
         readinessProbe:
           httpGet:
             path: /healthz
             port: {{ .Values.dispatcher.ports.container }}
-          initialDelaySeconds: 5
+          initialDelaySeconds: 10
           periodSeconds: 15
+        resources:
+          requests:
+            memory: {{ .Values.dispatcher.requests.memory }}
+            cpu: {{ .Values.dispatcher.requests.cpu }}
+          limits:
+            memory: {{ .Values.dispatcher.limits.memory }}
+            cpu: {{ .Values.dispatcher.limits.cpu }}
       volumes:
       - name: {{ .Values.postgres.secret.volumeName }}
         secret:

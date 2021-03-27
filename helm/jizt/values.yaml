@@ -37,6 +37,12 @@ dispatcher:
     svc: 5000
     container: 5000
   image: gcr.io/jizt-308512/jizt/dispatcher:0.1.2
+  requests:
+    memory: 32Mi
+    cpu: 20m
+  limits:
+    memory: 36Mi
+    cpu: 30m
 
 # Configuration for ConfigMap/Secret containing
 # PostgreSQL connection details
@@ -57,6 +63,12 @@ textPreprocessor:
     svc: 5000
     container: 5000
   image: gcr.io/jizt-308512/jizt/text-preprocessor:0.0.14
+  requests:
+    memory: 40Mi
+    cpu: 13m
+  limits:
+    memory: 48Mi
+    cpu: 15m
 
 # Configuration for the Text Encoder microservice
 t5LargeTextEncoder:
@@ -67,7 +79,13 @@ t5LargeTextEncoder:
   image: gcr.io/jizt-308512/jizt/t5-large-text-encoder:0.0.23
   volumeMounts:
     modelsMountPath: "/home/text_encoder/models"
-    tokenizerPath: "t5-small/tokenizer"  # TODO: change to t5-large
+    tokenizerPath: "t5-small/tokenizer"
+  requests:
+    memory: 125Mi
+    cpu: 4m
+  limits:
+    memory: 180Mi
+    cpu: 22m
 
 # Configuration for the Text Summarizer microservice
 t5LargeTextSummarizer:
@@ -78,8 +96,8 @@ t5LargeTextSummarizer:
   image: gcr.io/jizt-308512/jizt/t5-large-text-summarizer:0.0.25
   volumeMounts:
     modelsMountPath: "/home/text_summarizer/models"
-    tokenizerPath: "t5-small/tokenizer"  # TODO: change to t5-large
-    modelPath: "t5-small/model"  # TODO: change to t5-large
+    tokenizerPath: "t5-small/tokenizer"
+    modelPath: "t5-small/model"
   params:
     configMapName: t5-large-params
     # The max length of the summary will be at most
@@ -96,6 +114,12 @@ t5LargeTextSummarizer:
     repetition_penalty: None  # float
     length_penalty: None  # float
     no_repeat_ngram_size: 4  # int
+  requests:
+    memory: 580Mi
+    cpu: 3.4m
+  limits:
+    memory: 800Mi
+    cpu: 1.51
 
 # Configuration for the Text Postprocessor microservice
 textPostprocessor:
@@ -104,6 +128,12 @@ textPostprocessor:
     svc: 5000
     container: 5000
   image: gcr.io/jizt-308512/jizt/text-postprocessor:0.0.20
+  requests:
+    memory: 480Mi
+    cpu: 3.6m
+  limits:
+    memory: 600Mi
+    cpu: 610m
 
 
 #################################

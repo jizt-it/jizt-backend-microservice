@@ -84,6 +84,13 @@ spec:
         volumeMounts:
         - mountPath: {{ .Values.t5LargeTextSummarizer.volumeMounts.modelsMountPath }}
           name: {{ .Values.modelsPV.name }}-pv-storage
+        resources:
+          requests:
+            memory: {{ .Values.t5LargeTextSummarizer.requests.memory }}
+            cpu: {{ .Values.t5LargeTextSummarizer.requests.cpu }}
+          limits:
+            memory: {{ .Values.t5LargeTextSummarizer.limits.memory }}
+            cpu: {{ .Values.t5LargeTextSummarizer.limits.cpu }}
       volumes:
       - name: {{ .Values.modelsPV.name }}-pv-storage
         persistentVolumeClaim:

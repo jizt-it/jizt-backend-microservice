@@ -19,4 +19,11 @@ spec:
         args: ["-d"]  # uncomment for debug mode
         ports:
         - containerPort: {{ .Values.textPreprocessor.ports.container }}
+        resources:
+          requests:
+            memory: {{ .Values.textPreprocessor.requests.memory }}
+            cpu: {{ .Values.textPreprocessor.requests.cpu }}
+          limits:
+            memory: {{ .Values.textPreprocessor.limits.memory }}
+            cpu: {{ .Values.textPreprocessor.limits.cpu }}
 {{- end -}}

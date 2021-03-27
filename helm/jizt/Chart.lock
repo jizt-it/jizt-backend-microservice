@@ -1,6 +1,6 @@
 dependencies:
 - name: jiztlibchart
   repository: file://../jiztlibchart
-  version: 0.0.1
-digest: sha256:c6775430a2c44aed6894e3f9bb378f067c9727bd04b1a9450e564c93d57c8b10
-generated: "2020-12-25T13:46:58.393597823+01:00"
+  version: 0.0.2
+digest: sha256:794dba14e393cf85eb0edab52c303d13f9f0038c3c239018ef577e4641b4761c
+generated: "2021-03-27T11:13:14.606655882+01:00"
