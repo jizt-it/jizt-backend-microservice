@@ -54,24 +54,25 @@ class Summarizer:
     def model(self):
         return self._model
 
-    def summarize(self,
-                  input_ids: List[Union[List[int], torch.LongTensor]],
-                  relative_max_length: Optional[float] = 0.4,
-                  relative_min_length: Optional[float] = 0.1,
-                  do_sample: Optional[bool] = None,
-                  early_stopping: Optional[bool] = None,
-                  num_beams: Optional[int] = 4,
-                  temperature: Optional[float] = None,
-                  top_k: Optional[int] = None,
-                  top_p: Optional[float] = None,
-                  repetition_penalty: Optional[float] = None,
-                  bad_words_ids: Optional[Iterable[int]] = None,
-                  length_penalty: Optional[float] = None,
-                  no_repeat_ngram_size: Optional[int] = 3,
-                  num_return_sequences: Optional[int] = None,
-                  use_cache: Optional[bool] = None,
-                  skip_special_tokens: Optional[bool] = True,
-                  clean_up_tokenization_spaces: Optional[bool] = True
+    def summarize(
+        self,
+        input_ids: List[Union[List[int], torch.LongTensor]],
+        relative_max_length: Optional[float] = 0.4,
+        relative_min_length: Optional[float] = 0.1,
+        do_sample: Optional[bool] = None,
+        early_stopping: Optional[bool] = None,
+        num_beams: Optional[int] = 4,
+        temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+        repetition_penalty: Optional[float] = None,
+        bad_words_ids: Optional[Iterable[int]] = None,
+        length_penalty: Optional[float] = None,
+        no_repeat_ngram_size: Optional[int] = 3,
+        num_return_sequences: Optional[int] = None,
+        use_cache: Optional[bool] = None,
+        skip_special_tokens: Optional[bool] = True,
+        clean_up_tokenization_spaces: Optional[bool] = True
     ) -> str:
         """Generate a summary from the encoded tokens (input_ids).
 

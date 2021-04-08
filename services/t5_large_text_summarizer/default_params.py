@@ -15,7 +15,12 @@
 #
 # For license information on the libraries used, see LICENSE.
 
-"""Default params."""
+"""Default model parameters.
+
+The default values are set through container environment variables, so that they can
+be changed in "runtime" (recreating the pods) without having to rebuild the Docker
+image. The current default parameters can be found in :doc:`/helm/jizt/values.yaml`.
+"""
 
 __version__ = '0.1.1'
 

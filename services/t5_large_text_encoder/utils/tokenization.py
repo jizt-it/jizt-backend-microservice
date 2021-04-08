@@ -24,8 +24,9 @@ from blingfire import text_to_sentences
 from typing import List, Optional
 
 
-def sentence_tokenize(text: str,
-                      tokenizer: Optional[RegexpTokenizer] = None
+def sentence_tokenize(
+    text: str,
+    tokenizer: Optional[RegexpTokenizer] = None
 ) -> List[str]:
     r"""Divide the text into sentences.
 

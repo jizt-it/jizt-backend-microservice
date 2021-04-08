@@ -17,6 +17,8 @@
 
 """Text Summarizer."""
 
+__version__ = '0.1.4'
+
 import os
 import argparse
 import logging
@@ -29,11 +31,9 @@ from confluent_kafka import Message, KafkaError, KafkaException
 from schemas import (TextSummarizationConsumedMsgSchema,
                      DispatcherProducedMsgSchema,
                      TextPostprocessingProducedMsgSchema)
-from default_params import DefaultParams
+from param_validation import validate_params
 from summary_status import SummaryStatus
 from pathlib import Path
-
-__version__ = '0.1.3'
 
 TOKENIZER_PATH = (
     Path(os.environ['MODELS_MOUNT_PATH']) / Path(os.environ['TOKENIZER_PATH'])
@@ -109,7 +109,9 @@ class TextSummarizerService:
                     serialized_encoded_text = data.pop('text_encodings')
                     encoded_text = pickle.loads(serialized_encoded_text)
 
-                    params = self._clean_up_params_and_add_defaults(data['params'])
+                    params, invalid_params = validate_params(data['params'])
+                    self.logger.debug(f"Valid params: {params}")
+                    self.logger.debug(f"Invalid params: {invalid_params}")
                     data['params'] = params  # update params to keep only the valid ones
                     summarized_text = self.summarizer.summarize(encoded_text, **params)
                     data['summary'] = summarized_text
@@ -127,39 +129,6 @@ class TextSummarizerService:
         finally:
             self.logger.debug("Consumer loop stopped. Closing consumer...")
             self.consumer.close()  # close down consumer to commit final offsets
-
-    def _clean_up_params_and_add_defaults(self, params: dict) -> dict:
-        """Ignore invalid params and add default values.
-
-        Until here, the paramters are not checked in any step. Therefore,
-        the attribute ``params`` could contain invalid parameters. If that were
-        the case, we only take the correct ones; the invalid ones are ignored.
-
-        This method also adds default values to the parameters not present
-        in :obj:`params`.
-
-        Args:
-            params ():obj:`dict`):
-                The unchecked parameters.
-
-        Returns:
-            :obj:`dict`: The valid parameters, with defaults set if needed.
-        """
-
-        supported_params = [param.name.lower() for param in DefaultParams]
-        invalid_params = {}
-        for key in params:
-            if key not in supported_params:
-                invalid_params[key] = params[key]
-        [params.pop(invalid) for invalid in invalid_params]  # remove invalid params
-        for default_param in supported_params:
-            if default_param not in params:  # add not included param
-                params[default_param] = \
-                    DefaultParams[default_param.upper()].value
-        self.logger.debug(f"Valid params: {params}")
-        if invalid_params:
-            self.logger.debug(f"Invalid params: {invalid_params}")
-        return params
 
     def _produce_message(self,
                          topic: str,

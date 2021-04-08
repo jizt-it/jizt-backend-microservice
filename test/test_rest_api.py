@@ -25,6 +25,26 @@ import random
 __version__ = '0.1.0'
 
 API_URL = "https://api.jizt.it"
+
+# Default values returned by the backend
+DEFAULT_VALUES = {
+    "model": "t5-large",
+    "params": {
+        "relative_max_length": 0.4,
+        "relative_min_length": 0.1,
+        "do_sample": True,
+        "early_stopping": None,
+        "num_beams": 4,
+        "temperature": None,
+        "top_k": None,
+        "top_p": None,
+        "repetition_penalty": None,
+        "length_penalty": None,
+        "no_repeat_ngram_size": 4
+    },
+    "language": "en"
+}
+
 TEXT = """Social cooling refers to the idea that if “you feel you are being watched,
           you change your behavior.” And the massive amounts of data being collected,
           especially online, is exxagerating this effect. This may limit our desire
@@ -91,14 +111,14 @@ def test_request_only_source():
     """Request only specifying source -> Valid."""
 
     # We add a hash at the end of the source to avoid caching
-    json_attributes = {'source': f'{TEXT} {hash(random.random())}'}
+    json_attributes = {'source': get_random_text()}
     post_pull_validate_response(json_attributes)
 
 
 def test_request_source_and_params():
     """Request specifying source and params -> Valid."""
     # We add a hash at the end of the source to avoid caching
-    json_attributes = {'source': f'{TEXT} {hash(random.random())}',
+    json_attributes = {'source': get_random_text(),
                        'params': {'relative_max_length': 0.4,
                                   'relative_min_length': 0.2,
                                   'do_sample': True}}
@@ -112,7 +132,7 @@ def test_request_source_and_non_existent_params():
     Non existent params will be ignored and the default model will be used
     """
 
-    json_attributes = {'source': f'{TEXT} {hash(random.random())}',
+    json_attributes = {'source': get_random_text(),
                        'params': {'relative_max_length': 0.4,
                                   'non-existing-param': True,  # should be ignored
                                   'another-non-existing-param': 11}}
@@ -124,10 +144,187 @@ def test_request_source_and_non_existent_params():
     validate_fields(response, json_attributes)  # validate correct params
 
 
+def test_request_param_only_relative_max_length():
+    """Request specifiying only the ``relative_max_length`` parameter -> Valid.
+    
+    The ``relative_min_length`` will be set with a default value by the backend.
+    """
+
+    json_attributes = {'source': get_random_text(),
+                       'params': {'relative_max_length': 0.7}}
+    response = post_pull_validate_response(json_attributes)
+    validate_fields(response, json_attributes)  # validate correct params
+
+
+def test_request_param_only_relative_min_length():
+    """Request specifiying only the ``relative_min_length`` parameter -> Valid.
+
+    The ``relative_max_length`` will be set with a default value by the backend.
+    """
+
+    json_attributes = {'source': get_random_text(),
+                       'params': {'relative_min_length': 0.2}}
+    response = post_pull_validate_response(json_attributes)
+    validate_fields(response, json_attributes)  # validate correct params
+
+
+def test_request_param_only_relative_min_length_greater_than_default():
+    """Request specifiying only the ``relative_min_length`` parameter.
+
+    However, this value is greater than the default ``relative_max_length``, i.e.,
+    it's incorrect. Therefore, default values should be set by the backend for both
+    ``relative_max_length`` and ``relative_min_length``.
+    """
+
+    json_attributes = {'source': get_random_text(),
+                       'params': {'relative_min_length': 0.7}}  # too long!
+    response = post_pull_validate_response(json_attributes)
+    # The value should have been changed by the backend to the default value
+    json_attributes['params']['relative_min_length'] =\
+                                       DEFAULT_VALUES['params']['relative_min_length']
+    validate_fields(response, json_attributes)  # validate correct params
+
+
+def test_request_param_relative_max_length_smaller_than_relative_min_length():
+    """Request setting ``relative_max_length`` smaller than ``relative_min_length`` -> Invalid.
+
+    As the ``relative_max_length`` cannot be smaller than the ``relative_min_length``,
+    default values should be set by the backend for both of them.
+    """
+
+    json_attributes = {'source': get_random_text(),
+                       'params': {'relative_max_length': 0.2,
+                                  'relative_min_length': 0.5}}
+    response = post_pull_validate_response(json_attributes)
+    # The value should have been changed by the backend to the default value
+    json_attributes['params']['relative_max_length'] =\
+                                       DEFAULT_VALUES['params']['relative_max_length']
+    json_attributes['params']['relative_min_length'] =\
+                                       DEFAULT_VALUES['params']['relative_min_length']
+    validate_fields(response, json_attributes)  # validate correct params
+
+
+def test_request_param_relative_max_min_length_out_of_range():
+    """Request setting both the min and the max length out the range [0.0, 1.0] -> Invalid."""
+
+    json_attributes = {'source': get_random_text(),
+                       'params': {'relative_max_length': 1.1,
+                                  'relative_min_length': -0.1}}
+    response = post_pull_validate_response(json_attributes)
+    # The value should have been changed by the backend to the default value
+    json_attributes['params']['relative_max_length'] =\
+                                       DEFAULT_VALUES['params']['relative_max_length']
+    json_attributes['params']['relative_min_length'] =\
+                                       DEFAULT_VALUES['params']['relative_min_length']
+    validate_fields(response, json_attributes)  # validate correct params
+
+
+def test_request_param_relative_max_length_out_of_range_min_length_greater_than_default():
+    """Request with max length out of range and min lenght greater than default max length -> Invalid."""
+
+    json_attributes = {'source': get_random_text(),
+                       'params': {'relative_max_length': 1.5,
+                                  'relative_min_length': 0.6}}  # default max length is 0.4
+    response = post_pull_validate_response(json_attributes)
+    # The value should have been changed by the backend to the default value
+    json_attributes['params']['relative_max_length'] =\
+                                       DEFAULT_VALUES['params']['relative_max_length']
+    json_attributes['params']['relative_min_length'] =\
+                                       DEFAULT_VALUES['params']['relative_min_length']
+    validate_fields(response, json_attributes)  # validate correct params
+
+
+def test_request_param_relative_max_min_length_in_boundaries():
+    """Request setting the min and the max length in the boundaries [0.0, 1.0] -> Valid."""
+
+    json_attributes = {'source': get_random_text(),
+                       'params': {'relative_max_length': 1.0,
+                                  'relative_min_length': 0.1}}
+    response = post_pull_validate_response(json_attributes)
+    validate_fields(response, json_attributes)  # validate correct params
+
+
+def test_request_incorrect_boolean_params():
+    """Request setting the params that must be boolean as a non-boolean. -> Invalid.
+
+    These parameters are ``do_sample`` and ``early_stopping``.
+    """
+
+    json_attributes = {'source': get_random_text(),
+                       'params': {'do_sample': 'this is a string',
+                                  'early_stopping': 666}}
+    response = post_pull_validate_response(json_attributes)
+    # The value should have been changed by the backend to the default value
+    json_attributes['params']['do_sample'] =\
+                                       DEFAULT_VALUES['params']['do_sample']
+    json_attributes['params']['early_stopping'] =\
+                                       DEFAULT_VALUES['params']['early_stopping']
+    validate_fields(response, json_attributes)  # validate correct params
+
+
+def test_request_incorrect_number_params():
+    """Request setting the params that must be numbers as a non-numbers. -> Invalid.
+
+    These parameters are ``num_beams``, ``temperature``, ``top_k``, ``top_p``,
+    ``repetition_penalty``, ``length_penalty`` and ``no_repeat_ngram_size``.
+    """
+
+    json_attributes = {'source': get_random_text(),
+                       'params': {'num_beams': 'this is a string',
+                                  'temperature': True,
+                                  'top_k': {"hey": "ho"},
+                                  'top_p': (1, 2, 3),
+                                  'repetition_penalty': ['why not'],
+                                  'length_penalty': 'another string here',
+                                  'no_repeat_ngram_size': False}}
+    response = post_pull_validate_response(json_attributes)
+    # The value should have been changed by the backend to the default value
+    json_attributes['params']['num_beams'] =\
+                                      DEFAULT_VALUES['params']['num_beams']
+    json_attributes['params']['temperature'] =\
+                                      DEFAULT_VALUES['params']['temperature']
+    json_attributes['params']['top_k'] =\
+                                      DEFAULT_VALUES['params']['top_k']
+    json_attributes['params']['top_p'] =\
+                                      DEFAULT_VALUES['params']['top_p']
+    json_attributes['params']['repetition_penalty'] =\
+                                      DEFAULT_VALUES['params']['repetition_penalty']
+    json_attributes['params']['length_penalty'] =\
+                                      DEFAULT_VALUES['params']['length_penalty']
+    json_attributes['params']['no_repeat_ngram_size'] =\
+                                      DEFAULT_VALUES['params']['no_repeat_ngram_size']
+    validate_fields(response, json_attributes)  # validate correct params
+
+
+def test_request_incorrect_negative_number_params():
+    """Request setting params that cannot be negative as such -> Invalid.
+
+    These parameters are ``relative_max_length``, ``relative_min_length``,
+    ``num_beams`` and ``no_repeat_ngram_size``.
+    """
+
+    json_attributes = {'source': get_random_text(),
+                       'params': {'relative_max_length': -1,
+                                  'relative_min_length': -2,
+                                  'num_beams': -3,
+                                  'no_repeat_ngram_size': -4}}
+    response = post_pull_validate_response(json_attributes)
+    # The value should have been changed by the backend to the default value
+    json_attributes['params']['relative_max_length'] =\
+                                      DEFAULT_VALUES['params']['relative_max_length']
+    json_attributes['params']['relative_min_length'] =\
+                                      DEFAULT_VALUES['params']['relative_min_length']
+    json_attributes['params']['num_beams'] =\
+                                      DEFAULT_VALUES['params']['num_beams']
+    json_attributes['params']['no_repeat_ngram_size'] =\
+                                      DEFAULT_VALUES['params']['no_repeat_ngram_size']
+    validate_fields(response, json_attributes)  # validate correct params
+
+
 def test_request_source_and_model():
     """Request specifying source and model -> Valid."""
 
-    json_attributes = {'source': f'{TEXT} {hash(random.random())}',
+    json_attributes = {'source': get_random_text(),
                        'model': 't5-large'}
     response = post_pull_validate_response(json_attributes)
     validate_fields(response, json_attributes)
@@ -139,7 +336,7 @@ def test_request_source_and_non_existent_model():
     The specified model will be ignored and the default model will be used
     """
 
-    json_attributes = {'source': f'{TEXT} {hash(random.random())}',
+    json_attributes = {'source': get_random_text(),
                        'model': 't5-huge'}
     response = post_pull_validate_response(json_attributes)
     assert response.json()['model'] != 't5-huge'
@@ -150,7 +347,7 @@ def test_request_source_and_non_existent_model():
 def test_request_source_params_model():
     """Request specifying source, params and model -> Valid."""
 
-    json_attributes = {'source': f'{TEXT} {hash(random.random())}',
+    json_attributes = {'source': get_random_text(),
                        'params': {'relative_max_length': 0.4,
                                   'relative_min_length': 0.2,
                                   'do_sample': True,
@@ -163,33 +360,21 @@ def test_request_source_params_model():
 def test_default_values():
     """Check that the API returns the correct default values."""
 
-    default_values = {
-        "model": "t5-large",
-        "params": {
-            "relative_max_length": 0.4,
-            "relative_min_length": 0.1,
-            "do_sample": True,
-            "early_stopping": None,
-            "num_beams": 4,
-            "temperature": None,
-            "top_k": None,
-            "top_p": None,
-            "repetition_penalty": None,
-            "length_penalty": None,
-            "no_repeat_ngram_size": 4
-        },
-        "language": "en"
-    }
-    json_attributes = {'source': f'{TEXT} {hash(random.random())}'}
+    json_attributes = {'source': get_random_text()}
     response_json = post_pull_validate_response(json_attributes).json()
-    assert default_values["model"] == response_json["model"]
-    assert default_values["params"] == response_json["params"]
-    assert default_values["language"] == response_json["language"]
+    assert DEFAULT_VALUES["model"] == response_json["model"]
+    assert DEFAULT_VALUES["params"] == response_json["params"]
+    assert DEFAULT_VALUES["language"] == response_json["language"]
 
 
 ###########
 # Helpers #
 ###########
+
+def get_random_text():
+    """Concatenate a hash value to a predefined text to get a random text."""
+
+    return f'{TEXT} {hash(random.random())}'
 
 def post_pull_validate_response(json_attributes):
     """HTTP POST request, pull and validation."""

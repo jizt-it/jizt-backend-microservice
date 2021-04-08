@@ -93,7 +93,7 @@ t5LargeTextSummarizer:
   ports:
     svc: 5000
     container: 5000
-  image: gcr.io/jizt-308512/jizt/t5-large-text-summarizer:0.0.25
+  image: gcr.io/jizt-308512/jizt/t5-large-text-summarizer:0.0.26rc11
   volumeMounts:
     modelsMountPath: "/home/text_summarizer/models"
     tokenizerPath: "t5-small/tokenizer"
