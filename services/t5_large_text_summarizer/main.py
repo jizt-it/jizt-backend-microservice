@@ -31,8 +31,8 @@ from confluent_kafka import Message, KafkaError, KafkaException
 from schemas import (TextSummarizationConsumedMsgSchema,
                      DispatcherProducedMsgSchema,
                      TextPostprocessingProducedMsgSchema)
-from param_validation import validate_params
-from summary_status import SummaryStatus
+from utils.param_validation import validate_params
+from utils.summary_status import SummaryStatus
 from pathlib import Path
 
 TOKENIZER_PATH = (
