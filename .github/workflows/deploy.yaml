@@ -33,7 +33,7 @@ jobs:
     - run: python -c 'import nltk; nltk.download("punkt")'
 
     - name: Run tests
-      run: pytest test --ignore test/test_text_encoding.py
+      run: pytest test -v --ignore test/test_text_encoding.py
       
     # # Setup gcloud CLI
     # - uses: google-github-actions/setup-gcloud@v0.2.0

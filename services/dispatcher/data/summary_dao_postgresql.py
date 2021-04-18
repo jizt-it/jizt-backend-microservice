@@ -17,7 +17,7 @@
 
 """Summary Data Access Object (DAO) Implementation."""
 
-__version__ = '0.1.7'
+__version__ = '0.1.8'
 
 import logging
 import psycopg2
@@ -56,7 +56,7 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
         """See base class."""
 
         SQL = """SELECT summary_id, content, summary, model_name, params,
-                        status, started_at, ended_at, language_tag
+                        status, started_at, ended_at, language_tag, warnings
                  FROM jizt.id_raw_id_preprocessed JOIN jizt.summary
                       ON id_preprocessed = summary_id JOIN jizt.source
                       USING (source_id)
@@ -85,15 +85,15 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
                         started_at=summary_row[6],
                         ended_at=summary_row[7],
                         language=SupportedLanguage(summary_row[8])
-                    )
-                return None  # summary doesn't exist
+                    ), summary_row[9]  # warnings
+                return (None, None)  # summary doesn't exist
         except (Exception, psycopg2.DatabaseError) as error:
             self.logger.error(error)
         finally:
             if conn is not None:
                 conn.close()
 
-    def insert_summary(self, summary: Summary, cache: bool):
+    def insert_summary(self, summary: Summary, cache: bool, warnings: dict):
         """See base class."""
 
         SQL_GET_SOURCE = """SELECT source_id
@@ -107,7 +107,7 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
                                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"""
 
         SQL_INSERT_ID = """INSERT INTO jizt.id_raw_id_preprocessed
-                           VALUES (%s, %s, %s, %s);"""
+                           VALUES (%s, %s, %s, %s, %s);"""
 
         conn = None
         try:
@@ -134,7 +134,8 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
                 cur.execute(SQL_INSERT_ID, (summary.id_,
                                             summary.id_,
                                             cache,
-                                            datetime.now()))
+                                            datetime.now(),
+                                            Json(warnings)))
                 conn.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.logger.error(error)
@@ -172,19 +173,29 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
             if conn is not None:
                 conn.close()
 
-    def update_summary(self, id_: str, **kwargs):
+    def update_summary(self,
+                       id_: str,
+                       summary: str = None,  # output
+                       params: dict = None,
+                       status: str = None,
+                       started_at: datetime = None,
+                       ended_at: datetime = None,
+                       warnings: dict = None):
         """See base class."""
 
-        ordered_kwargs = OrderedDict(kwargs)
+        args = OrderedDict({key: value for key, value in locals().items()
+                            if value is not None and key not in ('self', 'id_')})
 
         # Convert dicts to Json
-        dicts = [key for key in ordered_kwargs
-                 if isinstance(ordered_kwargs[key], dict)]
+        dicts = [key for key in args if isinstance(args[key], dict)]
         for key in dicts:
-            ordered_kwargs[key] = Json(ordered_kwargs[key])
+            args[key] = Json(args[key])
 
-        keys = list(ordered_kwargs.keys())
-        values = list(ordered_kwargs.values()) + [id_]
+        if "warnings" in args:
+            warnings = args.pop("warnings")
+
+        keys = list(args.keys())
+        values = list(args.values()) + [id_]
         concat = StringIO()
         concat.write("UPDATE jizt.summary SET ")
         for field in keys[:-1]:
@@ -193,16 +204,18 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
         concat.write("FROM jizt.id_raw_id_preprocessed ")
         concat.write("WHERE id_raw = %s AND id_preprocessed = summary_id;")
 
-        SQL = concat.getvalue()
+        SQL_UPDATE_SUMMARY = concat.getvalue()
+        SQL_UPDATE_WARNINGS = """UPDATE jizt.id_raw_id_preprocessed
+                                 SET warnings = %s
+                                 WHERE id_raw = %s;"""
 
         if self.summary_exists(id_):
             conn = None
             try:
                 conn = self._connect()
                 with conn.cursor() as cur:
-                    cur.execute(SQL, values)
-                    if cur.rowcount == 0:  # nothing updated
-                        return None
+                    cur.execute(SQL_UPDATE_SUMMARY, values)  # values is a list!
+                    cur.execute(SQL_UPDATE_WARNINGS, (warnings, id_))
                     conn.commit()
                     return self.get_summary(id_)
             except (Exception, psycopg2.DatabaseError) as error:
@@ -211,7 +224,7 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
                 if conn is not None:
                     conn.close()
         else:
-            return None
+            return (None, None)
 
     def update_source(self,
                       old_source: str,

@@ -19,7 +19,12 @@
 
 __version__ = '0.1.3'
 
+from datetime import datetime
 from schemas import Summary
+from summary_status import SummaryStatus
+from supported_models import SupportedModel
+from supported_languages import SupportedLanguage
+from warning_messages import WarningMessage
 
 
 class SummaryDAOInterface:
@@ -33,11 +38,13 @@ class SummaryDAOInterface:
                 The summary id.
 
         Returns:
-            :obj:`Summary`: The summary with the specified id or
-            :obj:`None` if there is not any summary with that id.
+            :obj:tuple(:obj:`Summary`, :obj:`dict`): A tuple with the summary with the
+            specified id and its associated warnings (if there are no warnings then
+            they will be :obj:`None`) or a tuple containing two :obj:`None`s if there
+            is not any summary with the specified id.
         """
 
-    def insert_summary(self, summary: Summary, cache: bool):
+    def insert_summary(self, summary: Summary, cache: bool, warnings: dict):
         """Insert a new summary to the database.
 
         Args:
@@ -46,6 +53,8 @@ class SummaryDAOInterface:
             cache (:obj:`bool`):
                 Whether the summary must be cached, i.e., permanently stored in the
                 database.
+            warnings (:obj:`dict`):
+                The warnings derived from the user request.
         """
 
     def delete_summary(self, id_: str, delete_source: bool):
@@ -58,18 +67,24 @@ class SummaryDAOInterface:
                 Whether to also delete the source.
         """
 
-    def update_summary(self, id_: str, **kwargs):
+    def update_summary(self,
+                       id_: str,
+                       summary: str,  # output
+                       params: dict,
+                       status: str,
+                       started_at: datetime,
+                       ended_at: datetime,
+                       warnings: dict):
         """Update an existing summary.
 
         Args:
-            id_ (:obj:`str`):
-                The raw id (not to be confused with the preprocessed id).
-            **kwargs:
-                Fields of the summary to be updated.
+            See :py:class:`data.schemas.Summary`.
 
         Returns:
-            :obj:`Summary`: The updated summary or :obj:`None` if
-            there is not any summary with the specified id.
+            :obj:tuple(:obj:`Summary`, :obj:`dict`): A tuple with the updated summary
+            and its associated warnings (if there are no warnings then they will be
+            :obj:`None`) or a tuple containing two :obj:`None`s if there
+            is not any summary with the specified id.
         """
 
     def update_source(self,

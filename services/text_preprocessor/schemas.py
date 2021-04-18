@@ -19,7 +19,7 @@
 
 from marshmallow import Schema, fields
 
-__version__ = '0.1.4'
+__version__ = '0.1.5'
 
 
 class TextPreprocessingConsumedMsgSchema(Schema):
@@ -54,9 +54,12 @@ class DispatcherProducedMsgSchema(Schema):
             The model used to generate the summary.
         params (:obj:`dict`):
             The params used in the summary generation.
+        warnings (:obj:`dict`):
+            The warnings derived from the client's request (if any).
     """
 
     summary_status = fields.Str(required=True)
     text_preprocessed = fields.Str(required=True)
     model = fields.Str(required=True)
     params = fields.Dict(required=True)
+    warnings = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))

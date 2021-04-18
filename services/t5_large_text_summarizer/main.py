@@ -17,7 +17,7 @@
 
 """Text Summarizer."""
 
-__version__ = '0.1.4'
+__version__ = '0.1.5'
 
 import os
 import argparse
@@ -31,8 +31,8 @@ from confluent_kafka import Message, KafkaError, KafkaException
 from schemas import (TextSummarizationConsumedMsgSchema,
                      DispatcherProducedMsgSchema,
                      TextPostprocessingProducedMsgSchema)
-from param_validation import validate_params
-from summary_status import SummaryStatus
+from utils.param_validation import validate_params
+from utils.summary_status import SummaryStatus
 from pathlib import Path
 
 TOKENIZER_PATH = (
@@ -109,9 +109,16 @@ class TextSummarizerService:
                     serialized_encoded_text = data.pop('text_encodings')
                     encoded_text = pickle.loads(serialized_encoded_text)
 
-                    params, invalid_params = validate_params(data['params'])
+                    params, invalid_params, warnings = validate_params(data['params'])
+                    update_status['warnings'] = warnings
+                    self._produce_message(
+                        KafkaTopic.DISPATCHER.value,
+                        msg.key(),
+                        self.disp_produced_msg_schema.dumps(update_status)
+                    )
                     self.logger.debug(f"Valid params: {params}")
                     self.logger.debug(f"Invalid params: {invalid_params}")
+                    self.logger.debug(f"Warnings: {warnings}")
                     data['params'] = params  # update params to keep only the valid ones
                     summarized_text = self.summarizer.summarize(encoded_text, **params)
                     data['summary'] = summarized_text

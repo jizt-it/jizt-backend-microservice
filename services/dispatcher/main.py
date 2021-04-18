@@ -201,20 +201,22 @@ class PlainTextSummary(Resource):
         """
 
         data = request.json
+        # The validation will modify the data (i.e. it already loads it)
         self._validate_post_request_json(data)
 
-        loaded_data = self.request_schema.load(data)
-        source = loaded_data['source']
-        model = SupportedModel(loaded_data['model'])
-        params = loaded_data['params']
-        cache = loaded_data.pop('cache')
+        source = data['source']
+        model = SupportedModel(data['model'])
+        params = data['params']
+        cache = data.pop('cache')
 
         message_key = get_unique_key(source, model.value, params)  # summary id
 
-        summary = None
-
         if self.dispatcher_service.db.summary_exists(message_key):
-            summary = self.dispatcher_service.db.get_summary(message_key)
+            summary, warnings = self.dispatcher_service.db.get_summary(message_key)
+            if cache:
+                self.dispatcher_service.db.update_cache_true(message_key)
+            count = self.dispatcher_service.db.increment_summary_count(message_key)
+
             self.dispatcher_service.logger.debug(
                 f'Summary already exists: [id] {summary.id_}, [source] '
                 f'{summary.source[:50]}, [output] '
@@ -223,37 +225,36 @@ class PlainTextSummary(Resource):
                 f'{summary.status}, [started_at] {summary.started_at}, [ended_at] '
                 f'{summary.ended_at}, [language] {summary.language}'
             )
-            if cache:
-                self.dispatcher_service.db.update_cache_true(message_key)
-            count = self.dispatcher_service.db.increment_summary_count(message_key)
             self.dispatcher_service.logger.debug(f"Current summary count: {count}.")
         else:
             summary = Summary(
-                          id_=message_key,
-                          source=source,
-                          output=None,
-                          model=model,
-                          params=params,
-                          status=SummaryStatus.PREPROCESSING,
-                          started_at=datetime.now(),
-                          ended_at=None,
-                          language=SupportedLanguage.ENGLISH
-                      )
-            self.dispatcher_service.db.insert_summary(summary, cache)
+                id_=message_key,
+                source=source,
+                output=None,
+                model=model,
+                params=params,
+                status=SummaryStatus.PREPROCESSING,
+                started_at=datetime.now(),
+                ended_at=None,
+                language=SupportedLanguage.ENGLISH
+            )
+            warnings = data.pop('warnings', None)
+            self.dispatcher_service.db.insert_summary(summary, cache, warnings)
 
             topic = KafkaTopic.TEXT_PREPROCESSING.value
-            message_value = self.request_schema.dumps(loaded_data)
+            message_value = self.request_schema.dumps(data)
             self._produce_message(topic,
                                   message_key,
                                   message_value)
 
             self.dispatcher_service.logger.debug(
-                        f'Message produced: [topic]: "{topic}", '
-                        f'[key]: {message_key}, [value]: '
-                        f'"{message_value[:500]} [...]"'
+                f'Message produced: [topic]: "{topic}", '
+                f'[key]: {message_key}, [value]: '
+                f'"{message_value[:500]} [...]"'
             )
 
-        response = self.ok_response_schema.dump(summary)
+        response = {"summary": summary, "warnings": warnings}
+        response = self.ok_response_schema.dump(response)
         return response, 202  # ACCEPTED
 
     def get(self, summary_id):
@@ -276,7 +277,7 @@ class PlainTextSummary(Resource):
             with the specified id.
         """
 
-        summary = self.dispatcher_service.db.get_summary(summary_id)
+        summary, warnings = self.dispatcher_service.db.get_summary(summary_id)
         if summary is None:
             abort(404, errors=f'Summary {summary_id} not found.')  # NOT FOUND
         # Delete summary if the user requested their summary not to be cached,
@@ -284,11 +285,12 @@ class PlainTextSummary(Resource):
         if summary.status == SummaryStatus.COMPLETED.value:
             self.dispatcher_service.db.delete_if_not_cache(summary_id)
         # The id of the summary retrieved from the database corresponds to the
-        # preprocessed id. This id might not match the parameter summary_id, since
+        # preprocessed id. This id might not match the attribute 'summary_id', since
         # this is the raw id. Therefore, we make sure the returned id matches the
         # id requested (raw id).
         summary.id_ = summary_id
-        response = self.ok_response_schema.dump(summary)
+        response = {"summary": summary, "warnings": warnings}
+        response = self.ok_response_schema.dump(response)
         return response, 200  # OK
 
     def _validate_post_request_json(self, json):

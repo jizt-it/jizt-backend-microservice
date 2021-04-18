@@ -17,32 +17,37 @@
 
 """Model parameter validation."""
 
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
-from default_params import DefaultParams
-from typing import Union, Any, Tuple
+from default_params import DefaultParam
+from warning_messages import ValidationWarning, WarningMessage
+from typing import Union, Any, Tuple, List
 
 # Requirements the different params must comply with
 # The key 'type_' is always required; 'lower_bound' and 'upper_bound' are optional.
 PARAMS_VALIDATION_REQUISITES = {
-    DefaultParams.RELATIVE_MAX_LENGTH.name.lower(): {'type_': float,
-                                                     'lower_bound': 0.1,
-                                                     'upper_bound': 1.0},
-    DefaultParams.RELATIVE_MIN_LENGTH.name.lower(): {'type_': float,
-                                                     'lower_bound': 0.1,
-                                                     'upper_bound': 1.0},
-    DefaultParams.DO_SAMPLE.name.lower(): {'type_': bool},
-    DefaultParams.EARLY_STOPPING.name.lower(): {'type_': (bool)},
-    DefaultParams.NUM_BEAMS.name.lower(): {'type_': int,
-                                           'lower_bound': 0},
-    DefaultParams.TEMPERATURE.name.lower(): {'type_': float},
-    DefaultParams.TOP_K.name.lower(): {'type_': int},
-    DefaultParams.TOP_P.name.lower(): {'type_': float},
-    DefaultParams.REPETITION_PENALTY.name.lower(): {'type_': float},
-    DefaultParams.LENGTH_PENALTY.name.lower(): {'type_': float},
-    DefaultParams.NO_REPEAT_NGRAM_SIZE.name.lower(): {'type_': int,
-                                                      'lower_bound': 0}
+    DefaultParam.RELATIVE_MAX_LENGTH.name.lower(): {'type_': float,
+                                                    'lower_bound': 0.1,
+                                                    'upper_bound': 1.0},
+    DefaultParam.RELATIVE_MIN_LENGTH.name.lower(): {'type_': float,
+                                                    'lower_bound': 0.1,
+                                                    'upper_bound': 1.0},
+    DefaultParam.DO_SAMPLE.name.lower(): {'type_': bool},
+    DefaultParam.EARLY_STOPPING.name.lower(): {'type_': (bool)},
+    DefaultParam.NUM_BEAMS.name.lower(): {'type_': int,
+                                          'lower_bound': 0},
+    DefaultParam.TEMPERATURE.name.lower(): {'type_': float},
+    DefaultParam.TOP_K.name.lower(): {'type_': int},
+    DefaultParam.TOP_P.name.lower(): {'type_': float},
+    DefaultParam.REPETITION_PENALTY.name.lower(): {'type_': float},
+    DefaultParam.LENGTH_PENALTY.name.lower(): {'type_': float},
+    DefaultParam.NO_REPEAT_NGRAM_SIZE.name.lower(): {'type_': int,
+                                                     'lower_bound': 0}
 }
+
+
+# Used to generate the warning messages
+WARNING = ValidationWarning()
 
 
 def validate_params(params: dict) -> Tuple[dict, dict]:
@@ -56,65 +61,72 @@ def validate_params(params: dict) -> Tuple[dict, dict]:
             The parameters to validate.
 
     Returns:
-        :obj:`Tuple[dict, dict]: A tuple containing two dictionaries, the first
-        with the correct parameters, and the second with the invalid, discarded
-        parameters.
+        :obj:`Tuple[dict, dict, dict]: A tuple containing three dictionaries; the
+        first with the correct parameters; the second with the invalid, discarded
+        parameters); the third with the warning messages.
     """
 
-    supported_params = [param.name.lower() for param in DefaultParams]
+    supported_params = [param.name.lower() for param in DefaultParam]
     invalid_params = {}
+    warning_messages = {}
 
     for key in params:
         if key not in supported_params:
             invalid_params[key] = params[key]
+            warning_messages[key] = [WARNING(WarningMessage.UNSUPPORTED)]
         else:
             reqs = PARAMS_VALIDATION_REQUISITES[key].copy()
             type_ = reqs.pop('type_')
 
-            # validate ints
-            if (type_ is int
-                    and not _validate_int(value=params[key], **reqs)
-                    # validate floats
-                    or type_ is float
-                    and not _validate_float(value=params[key], **reqs)
-                    # validate bools
-                    or type_ is bool
-                    and not _validate_bool(params[key])):
+            is_valid, warnings = _validate_value(params[key], type_, **reqs)
+
+            if not is_valid:
                 invalid_params[key] = params[key]
+            if warnings:
+                warning_messages[key] = warnings
 
     # Ensure that the min length is smaller than the max length
-    min_ = DefaultParams.RELATIVE_MIN_LENGTH.name.lower()
-    max_ = DefaultParams.RELATIVE_MAX_LENGTH.name.lower()
+    min_ = DefaultParam.RELATIVE_MIN_LENGTH.name.lower()
+    max_ = DefaultParam.RELATIVE_MAX_LENGTH.name.lower()
     # If any of them is invalid, we first add the default value
     if min_ in invalid_params:
-        params[min_] = DefaultParams[min_.upper()].value
+        params[min_] = DefaultParam[min_.upper()].value
     if max_ in invalid_params:
-        params[max_] = DefaultParams[max_.upper()].value
+        params[max_] = DefaultParam[max_.upper()].value
     # Checks
     if (min_ in params and max_ in params and params[min_] >= params[max_]):
         invalid_params[min_] = params[min_]
         invalid_params[max_] = params[max_]
+        if min_ not in warning_messages:
+            warning_messages[min_] = [WARNING(WarningMessage.MIN_LENGTH)]
+        if max_ not in warning_messages:
+            warning_messages[max_] = [WARNING(WarningMessage.MAX_LENGTH)]
     elif (min_ in params and max_ not in params and
-            params[min_] >= DefaultParams.RELATIVE_MAX_LENGTH.value):
+            params[min_] >= DefaultParam.RELATIVE_MAX_LENGTH.value):
         invalid_params[min_] = params[min_]
+        if min_ not in warning_messages:
+            warning_messages[min_] = [WARNING(WarningMessage.MIN_LENGTH_DEFAULT)]
     elif (min_ not in params and max_ in params and
-            params[max_] <= DefaultParams.RELATIVE_MIN_LENGTH.value):
+            params[max_] <= DefaultParam.RELATIVE_MIN_LENGTH.value):
         invalid_params[max_] = params[max_]
+        if max_ not in warning_messages:
+            warning_messages[max_] = [WARNING(WarningMessage.MAX_LENGTH_DEFAULT)]
 
     _ = [params.pop(invalid) for invalid in invalid_params]  # remove invalid params
     for default_param in supported_params:
         if default_param not in params:  # add not included params
             params[default_param] = \
-                DefaultParams[default_param.upper()].value
+                DefaultParam[default_param.upper()].value
 
-    return params, invalid_params
+    return params, invalid_params, warning_messages
 
 
-def _validate_int(
+def _validate_value(
     value: Any,
+    type_: Any,
     lower_bound: int = None,
     upper_bound: int = None
-) -> bool:
+) -> Tuple[bool, List]:
     """Validate if a value is an :obj:`int`.
 
     The number can be constrained by a lower and/or an upper bound (inclusive).
@@ -122,6 +134,8 @@ def _validate_int(
     Args:
         value (:obj:`Any`):
             The value to check.
+        type (:obj:`Any`):
+            The type the value must be.
         lower_bound (:obj:`int`, `optional`, defaults to :obj:`None`):
             The lower bound of the constraint. Values smaller than this number are
             invalid. If set to :obj:`None`, the bound is not checked (i.e., the value
@@ -132,42 +146,32 @@ def _validate_int(
             is unbounded).
 
     Returns:
-        :obj:`bool`: :obj:`True` if :obj:`value` is valid (i.e., it's an :obj:`int`)
-        between :obj:`lower_bound` and :obj:`upper_bound`, inclusive), :obj:`False`
-        otherwise.
+        :obj:`Tuple[bool, List]`: A tuple containing a :obj:`bool` indicating whether
+        the value is valid, and a :obj:`List` with warning messages (if there are not
+        any warning messages, the list will be empty).
     """
 
-    return type(value) is int and _validate_bounds(value, lower_bound, upper_bound)
+    warning_messages = []
 
+    # Don't confuse type_, i.e. the type the value must have,
+    # with type(value), i.e. the actual type of the value.
+    if type_ is int:
+        if type(value) is not int:
+            warning_messages.append(WARNING(WarningMessage.INT))
+        elif not _validate_bounds(value, lower_bound, upper_bound):
+            warning_messages.append(WARNING(WarningMessage.LOWER_BOUNDED,
+                                            lower_bound=lower_bound))
+    elif type_ is float:
+        if type(value) is not float:
+            warning_messages.append(WARNING(WarningMessage.FLOAT))
+        elif not _validate_bounds(value, lower_bound, upper_bound):
+            warning_messages.append(WARNING(WarningMessage.BOUNDED,
+                                    lower_bound=lower_bound,
+                                    upper_bound=upper_bound))
+    elif type_ is bool and type(value) is not bool:
+        warning_messages.append(WARNING(WarningMessage.BOOL))
 
-def _validate_float(
-    value: Any,
-    lower_bound: float = None,
-    upper_bound: float = None
-) -> bool:
-    """Validate if a value is an :obj:`float`.
-
-    The number can be constrained by a lower and/or an upper bound (inclusive).
-
-    Args:
-        value (:obj:`Any`):
-            The value to check.
-        lower_bound (:obj:`float`, `optional`, defaults to :obj:`None`):
-            The lower bound of the constraint. Values smaller than this number are
-            invalid. If set to :obj:`None`, the bound is not checked (i.e., the value
-            is unbounded).
-        upper_bound (:obj:`float`, `optional`, defaults to :obj:`None`):
-            The upper bound of the constraint. Values greater than this number are
-            invalid. If set to :obj:`None`, the bound is not checked (i.e., the value
-            is unbounded).
-
-    Returns:
-        :obj:`bool`: :obj:`True` if :obj:`value` is valid (i.e., it's an :obj:`float`)
-        between :obj:`lower_bound` and :obj:`upper_bound`, inclusive), :obj:`False`
-        otherwise.
-    """
-
-    return type(value) is float and _validate_bounds(value, lower_bound, upper_bound)
+    return len(warning_messages) == 0, warning_messages
 
 
 def _validate_bounds(
@@ -176,7 +180,6 @@ def _validate_bounds(
     upper_bound: Union[int, float] = None,
 ) -> bool:
     """Check whether a number is contained within the defined bounds.
-
     Args:
         value (:obj:`int` or :obj:`float`):
             The value to check.
@@ -188,7 +191,6 @@ def _validate_bounds(
             The upper bound of the constraint. Values greater than this number are
             invalid. If set to :obj:`None`, the bound is not checked (i.e., the value
             is unbounded).
-
     Returns:
         :obj:`bool`: :obj:`True` if :obj:`value` is contained within the bounds
         :obj:`False` otherwise.
@@ -196,18 +198,3 @@ def _validate_bounds(
 
     return ((lower_bound is None or lower_bound <= value)
              and (upper_bound is None or upper_bound >= value))
-
-
-def _validate_bool(value: Any) -> bool:
-    """Determine whether a value is a :obj:`bool` or not.
-
-    Args:
-        value (:obj:`Any`):
-            The value to check.
-
-    Returns:
-        :obj:`bool`: :obj:`True` if :obj:`value` is a :obj:`bool`, :obj:`False`
-        otherwise.
-    """
-
-    return type(value) is bool

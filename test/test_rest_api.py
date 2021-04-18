@@ -22,7 +22,7 @@ import time
 import requests
 import random
 
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
 API_URL = "https://api.jizt.it"
 
@@ -139,6 +139,8 @@ def test_request_source_and_non_existent_params():
     response = post_pull_validate_response(json_attributes)
     assert 'non-existing-param' not in response.json()['params']
     assert 'another-non-existing-param' not in response.json()['params']
+    assert 'non-existing-param' in response.json()['warnings']
+    assert 'another-non-existing-param' in response.json()['warnings']
     del json_attributes['params']['non-existing-param']
     del json_attributes['params']['another-non-existing-param']
     validate_fields(response, json_attributes)  # validate correct params
@@ -182,6 +184,25 @@ def test_request_param_only_relative_min_length_greater_than_default():
     # The value should have been changed by the backend to the default value
     json_attributes['params']['relative_min_length'] =\
                                        DEFAULT_VALUES['params']['relative_min_length']
+    assert 'relative_min_length' in response.json()['warnings']
+    validate_fields(response, json_attributes)  # validate correct params
+
+
+def test_request_param_only_relative_max_length_smaller_than_default():
+    """Request specifiying only the ``relative_max_length`` parameter.
+
+    However, this value is smaller (or equal) than the default
+    ``relative_min_length``, i.e., it's incorrect. Therefore, default values should be
+     set by the backend for both ``relative_max_length`` and ``relative_min_length``.
+    """
+
+    json_attributes = {'source': get_random_text(),
+                       'params': {'relative_max_length': 0.1}}  # too long!
+    response = post_pull_validate_response(json_attributes)
+    # The value should have been changed by the backend to the default value
+    json_attributes['params']['relative_max_length'] =\
+                                       DEFAULT_VALUES['params']['relative_max_length']
+    assert 'relative_max_length' in response.json()['warnings']
     validate_fields(response, json_attributes)  # validate correct params
 
 
@@ -201,6 +222,8 @@ def test_request_param_relative_max_length_smaller_than_relative_min_length():
                                        DEFAULT_VALUES['params']['relative_max_length']
     json_attributes['params']['relative_min_length'] =\
                                        DEFAULT_VALUES['params']['relative_min_length']
+    assert 'relative_max_length' in response.json()['warnings']
+    assert 'relative_min_length' in response.json()['warnings']
     validate_fields(response, json_attributes)  # validate correct params
 
 
@@ -216,6 +239,8 @@ def test_request_param_relative_max_min_length_out_of_range():
                                        DEFAULT_VALUES['params']['relative_max_length']
     json_attributes['params']['relative_min_length'] =\
                                        DEFAULT_VALUES['params']['relative_min_length']
+    assert 'relative_max_length' in response.json()['warnings']
+    assert 'relative_min_length' in response.json()['warnings']
     validate_fields(response, json_attributes)  # validate correct params
 
 
@@ -231,6 +256,8 @@ def test_request_param_relative_max_length_out_of_range_min_length_greater_than_
                                        DEFAULT_VALUES['params']['relative_max_length']
     json_attributes['params']['relative_min_length'] =\
                                        DEFAULT_VALUES['params']['relative_min_length']
+    assert 'relative_max_length' in response.json()['warnings']
+    assert 'relative_min_length' in response.json()['warnings']
     validate_fields(response, json_attributes)  # validate correct params
 
 
@@ -259,6 +286,8 @@ def test_request_incorrect_boolean_params():
                                        DEFAULT_VALUES['params']['do_sample']
     json_attributes['params']['early_stopping'] =\
                                        DEFAULT_VALUES['params']['early_stopping']
+    assert 'do_sample' in response.json()['warnings']
+    assert 'early_stopping' in response.json()['warnings']
     validate_fields(response, json_attributes)  # validate correct params
 
 
@@ -293,6 +322,13 @@ def test_request_incorrect_number_params():
                                       DEFAULT_VALUES['params']['length_penalty']
     json_attributes['params']['no_repeat_ngram_size'] =\
                                       DEFAULT_VALUES['params']['no_repeat_ngram_size']
+    assert 'num_beams' in response.json()['warnings']
+    assert 'temperature' in response.json()['warnings']
+    assert 'top_k' in response.json()['warnings']
+    assert 'top_p' in response.json()['warnings']
+    assert 'repetition_penalty' in response.json()['warnings']
+    assert 'length_penalty' in response.json()['warnings']
+    assert 'no_repeat_ngram_size' in response.json()['warnings']
     validate_fields(response, json_attributes)  # validate correct params
 
 
@@ -318,6 +354,10 @@ def test_request_incorrect_negative_number_params():
                                       DEFAULT_VALUES['params']['num_beams']
     json_attributes['params']['no_repeat_ngram_size'] =\
                                       DEFAULT_VALUES['params']['no_repeat_ngram_size']
+    assert 'relative_max_length' in response.json()['warnings']
+    assert 'relative_min_length' in response.json()['warnings']
+    assert 'num_beams' in response.json()['warnings']
+    assert 'no_repeat_ngram_size' in response.json()['warnings']
     validate_fields(response, json_attributes)  # validate correct params
 
 
@@ -330,17 +370,64 @@ def test_request_source_and_model():
     validate_fields(response, json_attributes)
 
 
-def test_request_source_and_non_existent_model():
-    """Request specifying source and non existent model -> Valid.
+def test_request_source_and_unsupported_model():
+    """Request specifying source and unsupported model -> Invalid.
 
-    The specified model will be ignored and the default model will be used
+    The specified model will be ignored and the default model will be used.
     """
 
     json_attributes = {'source': get_random_text(),
                        'model': 't5-huge'}
     response = post_pull_validate_response(json_attributes)
-    assert response.json()['model'] != 't5-huge'
-    del json_attributes['model']
+    json_attributes['model'] = DEFAULT_VALUES['model']
+    assert 'model' in response.json()['warnings']
+    validate_fields(response, json_attributes)  # validate correct params
+
+
+def test_request_source_and_unsupported_language():
+    """Request specifying source and unsupported language -> Invalid.
+
+    The specified language will be ignored and the default language will be used.
+    """
+
+    json_attributes = {'source': get_random_text(),
+                       'language': 'tlh'}
+    response = post_pull_validate_response(json_attributes)
+    json_attributes['language'] = DEFAULT_VALUES['language']
+    assert 'language' in response.json()['warnings']
+    validate_fields(response, json_attributes)  # validate correct params
+
+
+def test_request_unsupported_model_language_and_bad_params():
+    """Request specifying an unsupported model, language, and bad params. -> Invalid.
+
+    Default values should be returned in the response.
+    """
+
+    json_attributes = {'source': get_random_text(),
+                       'model': 't5-huge',
+                       'language': 'tlh',
+                       'params': {'relative_max_length': -1,
+                                  'relative_min_length': -2,
+                                  'do_sample': 3,
+                                  'non_existent_param': 'hehe'}}
+    response = post_pull_validate_response(json_attributes)
+    json_attributes['model'] = DEFAULT_VALUES['model']
+    json_attributes['language'] = DEFAULT_VALUES['language']
+    json_attributes['params']['relative_max_length'] =\
+                                      DEFAULT_VALUES['params']['relative_max_length']
+    json_attributes['params']['relative_min_length'] =\
+                                      DEFAULT_VALUES['params']['relative_min_length']
+    json_attributes['params']['do_sample'] =\
+                                      DEFAULT_VALUES['params']['do_sample']
+    assert 'non_existent_param' not in response.json()
+    del json_attributes['params']['non_existent_param']
+    assert 'model' in response.json()['warnings']
+    assert 'language' in response.json()['warnings']
+    assert 'relative_max_length' in response.json()['warnings']
+    assert 'relative_min_length' in response.json()['warnings']
+    assert 'do_sample' in response.json()['warnings']
+    assert 'non_existent_param' in response.json()['warnings']
     validate_fields(response, json_attributes)  # validate correct params
 
 

@@ -17,13 +17,14 @@
 
 """Marshmallow Schemas for DispatcherService."""
 
-__version__ = '0.1.10'
+__version__ = '0.1.11'
 
 from datetime import datetime
 from marshmallow import Schema, fields, pre_dump, pre_load, EXCLUDE, INCLUDE
 from summary_status import SummaryStatus
 from supported_models import SupportedModel
 from supported_languages import SupportedLanguage
+from warning_messages import WarningMessage
 
 
 class Summary():
@@ -101,6 +102,8 @@ class PlainTextRequestSchema(Schema):
         cache (:obj:`bool`):
             Whether the summary must be cached or not. A cached summary implies that
             it will be permanently stored in the database.
+        warnings (:obj:`dict`):
+            The warnings derived from the client's request (if any).
     """
 
     # length could be limited with validate=Length(max=600)
@@ -109,6 +112,7 @@ class PlainTextRequestSchema(Schema):
     params = fields.Dict(required=True)
     language = fields.Str(required=True)
     cache = fields.Bool(required=True)
+    warnings = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
 
     @pre_load
     def validate_and_set_defaults(self, data, many, **kwargs):
@@ -116,11 +120,17 @@ class PlainTextRequestSchema(Schema):
 
         supp_models = [model.value for model in SupportedModel]
         supp_languages = [language.value for language in SupportedLanguage]
+        warning_msgs = {}
+
+        # Prevent the client from including 'warnings' in the request
+        if "warnings" in data:
+            del data["warnings"]
 
         # Check model
-        if ("model" not in data
-            or "model" in data and (data["model"] is None
-                                    or data["model"] not in supp_models)):
+        if "model" not in data or "model" in data and data["model"] is None:
+            data["model"] = SupportedModel.T5_LARGE.value
+        elif "model" in data and data["model"] not in supp_models:
+            warning_msgs["model"] = [WarningMessage.UNSUPPORTED_MODEL.value]
             data["model"] = SupportedModel.T5_LARGE.value
 
         # Check params
@@ -128,14 +138,19 @@ class PlainTextRequestSchema(Schema):
             data["params"] = {}
 
         # Check languages
-        if ("language" not in data
-            or "language" in data and (data["language"] is None
-                                       or data["language"] not in supp_languages)):
+        if "language" not in data or "language" in data and data["language"] is None:
+            data["language"] = SupportedLanguage.ENGLISH.value
+        elif "language" in data and data["language"] not in supp_languages:
+            warning_msgs["language"] = [WarningMessage.UNSUPPORTED_LANGUAGE.value]
             data["language"] = SupportedLanguage.ENGLISH.value
 
         # Check cache
         if ("cache" not in data or "cache" in data and data["cache"] is None):
             data["cache"] = True
+
+        # Add warnings (if any)
+        if warning_msgs:
+            data["warnings"] = warning_msgs
 
         return data
 
@@ -166,6 +181,8 @@ class ResponseSchema(Schema):
             The parameters with which the summary was generated.
         language (:obj:`str`):
             The language of the summary.
+        warnings (:obj:`dict`):
+            The warnings derived from the client's request (if any).
     """
 
     summary_id = fields.Str(required=True)
@@ -176,10 +193,14 @@ class ResponseSchema(Schema):
     model = fields.Str(required=True)
     params = fields.Dict(required=True)
     language = fields.Str(required=True)
+    warnings = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
 
     @pre_dump
-    def summary_to_response(self, summary: Summary, **kwargs):
-        """Transform a :obj:`Summary` object into a response.
+    def build_reponse(self, data: dict, **kwargs):
+        """Build a response with the :obj:`Summary` and warnings (if any).
+
+        The data must have the following scheme: ``{"summary": summary_object,
+        "warnings": warnings}``.
 
         This method is executed when calling :meth:`Schema.dump`. Since a
         summary includes more information than it will be included in the
@@ -191,21 +212,30 @@ class ResponseSchema(Schema):
         <https://marshmallow.readthedocs.io/en/stable/api_reference.html#marshmallow.pre_dump>`__.
         """
 
-        return {"summary_id": summary.id_,
-                "started_at": summary.started_at,
-                "ended_at": summary.ended_at,
-                "status": summary.status,
-                "output": summary.output,
-                "model": summary.model,
-                "params": summary.params,
-                "language": summary.language}
+        summary = data["summary"]
+        warnings = data["warnings"]
+        response = {"summary_id": summary.id_,
+                    "started_at": summary.started_at,
+                    "ended_at": summary.ended_at,
+                    "status": summary.status,
+                    "output": summary.output,
+                    "model": summary.model,
+                    "params": summary.params,
+                    "language": summary.language}
+
+        if warnings is not None:
+            response["warnings"] = warnings
+
+        return response
 
     class Meta:
         ordered = True
+        unknown = EXCLUDE
 
 
 class TextEncodingProducedMsgSchema(Schema):
     """Schema for the produced messages to the topic :attr:`KafkaTopic.TEXT_ENCODING`.
+
     Fields:
         text_preprocessed (:obj:`str`):
             The pre-processed text.
@@ -232,12 +262,15 @@ class ConsumedMsgSchema(Schema):
             The preprocessed text.
         output (:obj:`str`):
             The summary.
+        warnings (:obj:`dict`):
+            The warnings derived from the client's request (if any).
     """
 
     summary_status = fields.Str(required=True)
     params = fields.Dict()
     text_preprocessed = fields.Str()
     output = fields.Str()
+    warnings = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
 
     class Meta:
         unknown = INCLUDE

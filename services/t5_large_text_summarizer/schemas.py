@@ -20,7 +20,7 @@
 import base64
 from marshmallow import Schema, fields
 
-__version__ = '0.1.5'
+__version__ = '0.1.6'
 
 
 class JSONSerializableBytesField(fields.Field):
@@ -88,6 +88,9 @@ class DispatcherProducedMsgSchema(Schema):
     Fields:
         summary_status (:obj:`str`):
             The status of the summary.
+        warnings (:obj:`dict`):
+            The warnings derived from the client's request (if any).
     """
 
     summary_status = fields.Str(required=True)
+    warnings = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
