@@ -19,28 +19,29 @@
 
 __version__ = '0.1.0'
 
-from default_params import DefaultParams
+from default_params import DefaultParam
 from typing import Union, Any, Tuple
+from warning_messages import WarningMessage
 
 # Requirements the different params must comply with
 # The key 'type_' is always required; 'lower_bound' and 'upper_bound' are optional.
 PARAMS_VALIDATION_REQUISITES = {
-    DefaultParams.RELATIVE_MAX_LENGTH.name.lower(): {'type_': float,
+    DefaultParam.RELATIVE_MAX_LENGTH.name.lower(): {'type_': float,
                                                      'lower_bound': 0.1,
                                                      'upper_bound': 1.0},
-    DefaultParams.RELATIVE_MIN_LENGTH.name.lower(): {'type_': float,
+    DefaultParam.RELATIVE_MIN_LENGTH.name.lower(): {'type_': float,
                                                      'lower_bound': 0.1,
                                                      'upper_bound': 1.0},
-    DefaultParams.DO_SAMPLE.name.lower(): {'type_': bool},
-    DefaultParams.EARLY_STOPPING.name.lower(): {'type_': (bool)},
-    DefaultParams.NUM_BEAMS.name.lower(): {'type_': int,
+    DefaultParam.DO_SAMPLE.name.lower(): {'type_': bool},
+    DefaultParam.EARLY_STOPPING.name.lower(): {'type_': (bool)},
+    DefaultParam.NUM_BEAMS.name.lower(): {'type_': int,
                                            'lower_bound': 0},
-    DefaultParams.TEMPERATURE.name.lower(): {'type_': float},
-    DefaultParams.TOP_K.name.lower(): {'type_': int},
-    DefaultParams.TOP_P.name.lower(): {'type_': float},
-    DefaultParams.REPETITION_PENALTY.name.lower(): {'type_': float},
-    DefaultParams.LENGTH_PENALTY.name.lower(): {'type_': float},
-    DefaultParams.NO_REPEAT_NGRAM_SIZE.name.lower(): {'type_': int,
+    DefaultParam.TEMPERATURE.name.lower(): {'type_': float},
+    DefaultParam.TOP_K.name.lower(): {'type_': int},
+    DefaultParam.TOP_P.name.lower(): {'type_': float},
+    DefaultParam.REPETITION_PENALTY.name.lower(): {'type_': float},
+    DefaultParam.LENGTH_PENALTY.name.lower(): {'type_': float},
+    DefaultParam.NO_REPEAT_NGRAM_SIZE.name.lower(): {'type_': int,
                                                       'lower_bound': 0}
 }
 
@@ -61,7 +62,7 @@ def validate_params(params: dict) -> Tuple[dict, dict]:
         parameters.
     """
 
-    supported_params = [param.name.lower() for param in DefaultParams]
+    supported_params = [param.name.lower() for param in DefaultParam]
     invalid_params = {}
 
     for key in params:
@@ -83,29 +84,29 @@ def validate_params(params: dict) -> Tuple[dict, dict]:
                 invalid_params[key] = params[key]
 
     # Ensure that the min length is smaller than the max length
-    min_ = DefaultParams.RELATIVE_MIN_LENGTH.name.lower()
-    max_ = DefaultParams.RELATIVE_MAX_LENGTH.name.lower()
+    min_ = DefaultParam.RELATIVE_MIN_LENGTH.name.lower()
+    max_ = DefaultParam.RELATIVE_MAX_LENGTH.name.lower()
     # If any of them is invalid, we first add the default value
     if min_ in invalid_params:
-        params[min_] = DefaultParams[min_.upper()].value
+        params[min_] = DefaultParam[min_.upper()].value
     if max_ in invalid_params:
-        params[max_] = DefaultParams[max_.upper()].value
+        params[max_] = DefaultParam[max_.upper()].value
     # Checks
     if (min_ in params and max_ in params and params[min_] >= params[max_]):
         invalid_params[min_] = params[min_]
         invalid_params[max_] = params[max_]
     elif (min_ in params and max_ not in params and
-            params[min_] >= DefaultParams.RELATIVE_MAX_LENGTH.value):
+            params[min_] >= DefaultParam.RELATIVE_MAX_LENGTH.value):
         invalid_params[min_] = params[min_]
     elif (min_ not in params and max_ in params and
-            params[max_] <= DefaultParams.RELATIVE_MIN_LENGTH.value):
+            params[max_] <= DefaultParam.RELATIVE_MIN_LENGTH.value):
         invalid_params[max_] = params[max_]
 
     _ = [params.pop(invalid) for invalid in invalid_params]  # remove invalid params
     for default_param in supported_params:
         if default_param not in params:  # add not included params
             params[default_param] = \
-                DefaultParams[default_param.upper()].value
+                DefaultParam[default_param.upper()].value
 
     return params, invalid_params
 

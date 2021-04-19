@@ -50,7 +50,7 @@ def safe_str_to_type(value: str, to_type):
     return None if value is None or value.lower() == "none" else to_type(value)
 
 
-class DefaultParams(Enum):
+class DefaultParam(Enum):
     """Default params."""
 
     _settings_ = NoAlias
