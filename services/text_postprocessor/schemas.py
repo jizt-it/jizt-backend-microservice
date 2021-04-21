@@ -30,10 +30,13 @@ class TextPostprocessingConsumedMsgSchema(Schema):
             The text to be post-processed.
         params (:obj:`dict`):
             The valid params, onced checked by the summarizer.
+        warnings (:obj:`List[str]`):
+            The warnings derived from the client's request (if any).
     """
 
     summary = fields.Str(required=True)
     params = fields.Dict(required=True)
+    warnings = fields.List(fields.Str)
 
 
 class DispatcherProducedMsgSchema(Schema):
@@ -44,8 +47,11 @@ class DispatcherProducedMsgSchema(Schema):
             The post-processed text.
         params (:obj:`dict`):
             The valid params, onced checked by the summarizer.
+        warnings (:obj:`List[str]`):
+            The warnings derived from the client's request (if any).
     """
 
     summary_status = fields.Str(required=True)
     output = fields.Str(required=True)
     params = fields.Dict(required=True)
+    warnings = fields.List(fields.Str)

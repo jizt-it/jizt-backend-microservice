@@ -229,16 +229,16 @@ class PlainTextSummary(Resource):
             self.dispatcher_service.logger.debug(f"Current summary count: {count}.")
         else:
             summary = Summary(
-                          id_=message_key,
-                          source=source,
-                          output=None,
-                          model=model,
-                          params=params,
-                          status=SummaryStatus.PREPROCESSING,
-                          started_at=datetime.now(),
-                          ended_at=None,
-                          language=SupportedLanguage.ENGLISH
-                      )
+                id_=message_key,
+                source=source,
+                output=None,
+                model=model,
+                params=params,
+                status=SummaryStatus.PREPROCESSING,
+                started_at=datetime.now(),
+                ended_at=None,
+                language=SupportedLanguage.ENGLISH
+            )
             self.dispatcher_service.db.insert_summary(summary, cache)
 
             topic = KafkaTopic.TEXT_PREPROCESSING.value
@@ -248,9 +248,9 @@ class PlainTextSummary(Resource):
                                   message_value)
 
             self.dispatcher_service.logger.debug(
-                        f'Message produced: [topic]: "{topic}", '
-                        f'[key]: {message_key}, [value]: '
-                        f'"{message_value[:500]} [...]"'
+                f'Message produced: [topic]: "{topic}", '
+                f'[key]: {message_key}, [value]: '
+                f'"{message_value[:500]} [...]"'
             )
 
         response = self.ok_response_schema.dump(summary)

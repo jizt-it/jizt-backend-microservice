@@ -143,6 +143,32 @@ class PlainTextRequestSchema(Schema):
         unknown = EXCLUDE
 
 
+class TextPreprocessingProducedMsgSchema(Schema):
+    """Schema for the produced messages to the topic :attr:`KafkaTopic.TEXT_PREPROCESSING`.
+
+    Fields:
+        source (:obj:`str`):
+            The text in plain format to be summarized.
+        model (:obj:`str`, `optional`, defaults to :obj:`SupportedModel.T5_LARGE`):
+            The model used to generate the summary.
+        params (:obj:`dict`, `optional`, defaults to :obj:`{}`):
+            The params used in the summary generation.
+        language (:obj:`str`):
+            The language of the text.
+        cache (:obj:`bool`):
+            Whether the summary must be cached or not. A cached summary implies that
+        warnings (:obj:`List[str]`):
+            The warnings derived from the client's request (if any).
+    """
+
+    source = fields.Str(required=True)
+    model = fields.Str(required=True)
+    params = fields.Dict(required=True)
+    language = fields.Str(required=True)
+    cache = fields.Bool(required=True)
+    warnings = fields.List(fields.Str)
+
+
 class ResponseSchema(Schema):
     """Schema for the response to the clients' requests.
 
@@ -206,6 +232,7 @@ class ResponseSchema(Schema):
 
 class TextEncodingProducedMsgSchema(Schema):
     """Schema for the produced messages to the topic :attr:`KafkaTopic.TEXT_ENCODING`.
+
     Fields:
         text_preprocessed (:obj:`str`):
             The pre-processed text.
@@ -218,6 +245,7 @@ class TextEncodingProducedMsgSchema(Schema):
     text_preprocessed = fields.Str(required=True)
     model = fields.Str(required=True)
     params = fields.Dict(required=True)
+    warnings = fields.Str()
 
 
 class ConsumedMsgSchema(Schema):
@@ -232,12 +260,15 @@ class ConsumedMsgSchema(Schema):
             The preprocessed text.
         output (:obj:`str`):
             The summary.
+        warnings (:obj:`List[str]`):
+            The warnings derived from the client's request (if any).
     """
 
     summary_status = fields.Str(required=True)
     params = fields.Dict()
     text_preprocessed = fields.Str()
     output = fields.Str()
+    warnings = fields.List(fields.Str)
 
     class Meta:
         unknown = INCLUDE

@@ -62,10 +62,13 @@ class TextSummarizationConsumedMsgSchema(Schema):
             The encoded text to be summarized.
         params (:obj:`dict`):
             The params used in the summary generation.
+        warnings (:obj:`List[str]`):
+            The warnings derived from the client's request (if any).
     """
 
     text_encodings = JSONSerializableBytesField(required=True)
     params = fields.Dict(required=True)
+    warnings = fields.List(fields.Str)
 
 
 class TextPostprocessingProducedMsgSchema(Schema):
@@ -76,10 +79,13 @@ class TextPostprocessingProducedMsgSchema(Schema):
             The generated summary.
         params (:obj:`dict`):
             The valid params, onced checked by the summarizer.
+        warnings (:obj:`List[str]`):
+            The warnings derived from the client's request (if any).
     """
 
     summary = fields.Str(required=True)
     params = fields.Dict(required=True)
+    warnings = fields.List(fields.Str)
 
 
 class DispatcherProducedMsgSchema(Schema):

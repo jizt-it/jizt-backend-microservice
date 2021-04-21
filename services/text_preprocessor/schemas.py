@@ -34,12 +34,15 @@ class TextPreprocessingConsumedMsgSchema(Schema):
             The params used in the summary generation.
         language (:obj:`str`):
             The language of the text.
+        warnings (:obj:`List[str]`):
+            The warnings derived from the client's request (if any).
     """
 
     source = fields.Str(required=True)
     model = fields.Str(required=True)
     params = fields.Dict(required=True)
     language = fields.Str(required=True)
+    warnings = fields.List(fields.Str)
 
 
 class DispatcherProducedMsgSchema(Schema):
@@ -54,9 +57,12 @@ class DispatcherProducedMsgSchema(Schema):
             The model used to generate the summary.
         params (:obj:`dict`):
             The params used in the summary generation.
+        warnings (:obj:`List[str]`):
+            The warnings derived from the client's request (if any).
     """
 
     summary_status = fields.Str(required=True)
     text_preprocessed = fields.Str(required=True)
     model = fields.Str(required=True)
     params = fields.Dict(required=True)
+    warnings = fields.List(fields.Str)
