@@ -22,24 +22,42 @@ __version__ = '0.1.0'
 import re
 from enum import Enum
 from default_params import DefaultParam
+from typing import Union
 
 
 class WarningMessage(Enum):
     """Warning messages for incorrect parameters."""
 
     # int value
-    INT = "The parameter '{param}' must be an int. Using default value instead."
-    # int with a lower bound (inclusive)
-    LOWER_BOUNDED_INT = ("The parameter '{param}' must be an int >= {lower_bound}. "
-                         "Using default value instead.")
+    INT = "The specified value must be an int. Using default value instead."
     # float value
-    FLOAT = "The parameter '{param}' must be a float. Using default value instead."
-    # float with lower and upper bounds (inclusive)
-    BOUNDED_FLOAT = ("The parameter '{param}' must be a float in the range "
-                    "[{lower_bound}, {upper_bound}]. Using default values instead.")
+    FLOAT = "The specified value must be a float. Using default value instead."
+    # numeric vaule with a lower bound (inclusive)
+    LOWER_BOUNDED = ("The specified value must be greater or equal to "
+                     "{lower_bound}. Using default value instead.")
+    # numeric vaule with lower and upper bounds (inclusive)
+    BOUNDED = ("The specified value must be in the range [{lower_bound}, "
+               "{upper_bound}]. Using default values instead.")
     # bool value
-    BOOL = ("The parameter '{param}' must be a bool value. "
-            "Using default value instead.")
+    BOOL = "The specified value must be a bool. Using default value instead."
+    # unsupported parameter
+    UNSUPPORTED = "Parameter not supported. It will be ignored."
+    # relative_max_length
+    MAX_LENGTH = ("This parameter must be greater than 'relative_min_length'. Using "
+                  "default value instead.")
+    # relative_min_length
+    MIN_LENGTH = ("This parameter must be smaller than 'relative_max_length'. Using "
+                  "default value instead.")
+    # default relative_max_length
+    MAX_LENGTH_DEFAULT = (f"This parameter must be greater than the default "
+                          f"'relative_min_length' "
+                          f"({DefaultParam.RELATIVE_MIN_LENGTH.value}). Using "
+                          f"default value instead.")
+    # default relative_min_length
+    MIN_LENGTH_DEFAULT = (f"This parameter must be smaller than the default "
+                          f"'relative_max_length' "
+                          f"({DefaultParam.RELATIVE_MAX_LENGTH.value}). Using "
+                          f"default value instead.")
 
 
 class ValidationWarning:
@@ -48,7 +66,6 @@ class ValidationWarning:
     def __call__(
         self,
         warning_message: WarningMessage,
-        param: DefaultParam,
         **kwargs
     ) -> str:
         """Get a validation warning message.
@@ -59,18 +76,15 @@ class ValidationWarning:
 
             validation_warning = ValidationWarning()
             warning_str = validation_warning(
-                WarningMessage.LOWER_BOUNDED_INT,
-                DefaultParam.NUM_BEAMS,
+                WarningMessage.LOWER_BOUNDED,
                 lower_bound=0
             )
-            # "The parameter 'num_beams' must be an int >= 0. "
-            # "Using default values instead."
+            # "The specified value must be greater or equal to 0. "
+            # "Using default value instead."
 
         Args:
             warning_message(:obj:`WarningMessage`):
                 The warning message to get.
-            param (:obj:`DefaultParam`):
-                The name of invalid parameter.
             **kwargs:
                 Additional info, the bounds of the parameter in case of it being a
                 numerical value.
@@ -79,116 +93,35 @@ class ValidationWarning:
             :obj:`str`: The warning message.
         """
 
-        if warning_message == WarningMessage.INT:
-            return self._int(param, **kwargs)
-        elif warning_message == WarningMessage.LOWER_BOUNDED_INT:
-            return self._lower_bounded_int(param, **kwargs)
-        elif warning_message == WarningMessage.FLOAT:
-            return self._float(param, **kwargs)
-        elif warning_message == WarningMessage.BOUNDED_FLOAT:
-            return self._bounded_float(param, **kwargs) 
-        elif warning_message == WarningMessage.BOOL:
-            return self._bool(param, **kwargs)
-        else:
-            raise NameError(f'${warning_message} is not defined')
+        return self._build_message(warning_message, **kwargs)
 
     @classmethod
-    def _int(cls, param: DefaultParam) -> str:
-        """Get a warning message for an unbounded :obj:`int`.
-
-        Args:
-            param (:obj:`DefaultParam`):
-                The name of invalid parameter.
-
-        Returns:
-            :obj:`str`: The warning message.
-        """
-
-        return re.sub(r'{param}', param.name.lower(), WarningMessage.INT.value)
-
-    @classmethod
-    def _lower_bounded_int(cls, param: DefaultParam, lower_bound: int) -> str:
-        """Get a warning message for an :obj:`int` with a lower bound.
-
-        Args:
-            param (:obj:`DefaultParam`):
-                The name of invalid parameter.
-            lower_bound (:obj:`int`):
-                The lower bound of the parameter.
-
-        Returns:
-            :obj:`str`: The warning message.
-        """
-
-        return re.sub(
-            r'{param}',
-            param.name.lower(),
-            re.sub(
-                r'{lower_bound}',
-                str(lower_bound),
-                WarningMessage.LOWER_BOUNDED_INT.value
-            )
-        )
-
-    @classmethod
-    def _float(cls, param: DefaultParam) -> str:
-        """Get a warning message for an unbounded :obj:`float`.
-
-        Args:
-            param (:obj:`DefaultParam`):
-                The name of invalid parameter.
-
-        Returns:
-            :obj:`str`: The warning message.
-        """
-
-        return re.sub(r'{param}', param.name.lower(), WarningMessage.FLOAT.value)
-
-    @classmethod
-    def _bounded_float(
+    def _build_message(
         cls,
-        param: DefaultParam,
-        lower_bound: float,
-        upper_bound: float
+        warning_message: WarningMessage,
+        lower_bound: Union[int, float] = None,
+        upper_bound: Union[int, float] = None,
     ) -> str:
-        """Get a warning message for a :obj:`float` with lower and upper bounds.
+        """Build the warning message.
 
         Args:
-            param (:obj:`DefaultParam`):
-                The name of invalid parameter.
-            lower_bound (:obj:`int`):
+            warning_message (:obj:`WarningMessage`):
+                The warning message to build.
+            lower_bound (:obj:`int` or :obj:`float`, `optional`, defaults to :obj:`None`):
                 The lower bound of the parameter.
-            upper_bound (:obj:`int`):
+            upper_bound (:obj:`int` or :obj:`float`, `optional`, defaults to :obj:`None`):
                 The upper bound of the parameter.
 
         Returns:
             :obj:`str`: The warning message.
         """
 
-        return re.sub(
-            r'{param}',
-            param.name.lower(),
-            re.sub(
-                r'{lower_bound}',
-                str(lower_bound),
-                re.sub(
-                    r'{upper_bound}',
-                    str(upper_bound),
-                    WarningMessage.BOUNDED_FLOAT.value
-                )
-            )
-        )
+        message = warning_message.value
 
-    @classmethod
-    def _bool(cls, param: DefaultParam) -> str:
-        """Get a warning message for a :obj:`bool`.
+        if lower_bound is not None:
+            message = re.sub(r'{lower_bound}', str(lower_bound), message)
 
-        Args:
-            param (:obj:`DefaultParam`):
-                The name of invalid parameter.
+        if lower_bound is not None:
+            message = re.sub(r'{upper_bound}', str(upper_bound), message)
 
-        Returns:
-            :obj:`str`: The warning message.
-        """
-
-        return re.sub(r'{param}', param.name.lower(), WarningMessage.BOOL.value)
+        return message
