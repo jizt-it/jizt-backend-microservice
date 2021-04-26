@@ -24,6 +24,7 @@ from marshmallow import Schema, fields, pre_dump, pre_load, EXCLUDE, INCLUDE
 from summary_status import SummaryStatus
 from supported_models import SupportedModel
 from supported_languages import SupportedLanguage
+from warning_messages import WarningMessage
 
 
 class Summary():
@@ -101,6 +102,8 @@ class PlainTextRequestSchema(Schema):
         cache (:obj:`bool`):
             Whether the summary must be cached or not. A cached summary implies that
             it will be permanently stored in the database.
+        warnings (:obj:`dict`):
+            The warnings derived from the client's request (if any).
     """
 
     # length could be limited with validate=Length(max=600)
@@ -109,6 +112,7 @@ class PlainTextRequestSchema(Schema):
     params = fields.Dict(required=True)
     language = fields.Str(required=True)
     cache = fields.Bool(required=True)
+    warnings = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
 
     @pre_load
     def validate_and_set_defaults(self, data, many, **kwargs):
@@ -116,12 +120,18 @@ class PlainTextRequestSchema(Schema):
 
         supp_models = [model.value for model in SupportedModel]
         supp_languages = [language.value for language in SupportedLanguage]
+        warning_msgs = {}
+
+        # Prevent the client from including 'warnings' in the request
+        if "warnings" in data:
+            del data["warnings"] 
 
         # Check model
         if ("model" not in data
             or "model" in data and (data["model"] is None
                                     or data["model"] not in supp_models)):
             data["model"] = SupportedModel.T5_LARGE.value
+            warning_msgs["model"] = [WarningMessage.UNSUPPORTED_MODEL.value]
 
         # Check params
         if "params" not in data or "params" in data and data["params"] is None:
@@ -132,41 +142,20 @@ class PlainTextRequestSchema(Schema):
             or "language" in data and (data["language"] is None
                                        or data["language"] not in supp_languages)):
             data["language"] = SupportedLanguage.ENGLISH.value
+            warning_msgs["language"] = [WarningMessage.UNSUPPORTED_LANGUAGE.value]
 
         # Check cache
         if ("cache" not in data or "cache" in data and data["cache"] is None):
             data["cache"] = True
 
+        # Add warnings (if any)
+        if warning_msgs:
+            data["warnings"] = warning_msgs
+
         return data
 
     class Meta:
         unknown = EXCLUDE
-
-
-class TextPreprocessingProducedMsgSchema(Schema):
-    """Schema for the produced messages to the topic :attr:`KafkaTopic.TEXT_PREPROCESSING`.
-
-    Fields:
-        source (:obj:`str`):
-            The text in plain format to be summarized.
-        model (:obj:`str`, `optional`, defaults to :obj:`SupportedModel.T5_LARGE`):
-            The model used to generate the summary.
-        params (:obj:`dict`, `optional`, defaults to :obj:`{}`):
-            The params used in the summary generation.
-        language (:obj:`str`):
-            The language of the text.
-        cache (:obj:`bool`):
-            Whether the summary must be cached or not. A cached summary implies that
-        warnings (:obj:`List[str]`):
-            The warnings derived from the client's request (if any).
-    """
-
-    source = fields.Str(required=True)
-    model = fields.Str(required=True)
-    params = fields.Dict(required=True)
-    language = fields.Str(required=True)
-    cache = fields.Bool(required=True)
-    warnings = fields.List(fields.Str)
 
 
 class ResponseSchema(Schema):
@@ -260,7 +249,7 @@ class ConsumedMsgSchema(Schema):
             The preprocessed text.
         output (:obj:`str`):
             The summary.
-        warnings (:obj:`List[str]`):
+        warnings (:obj:`dict`):
             The warnings derived from the client's request (if any).
     """
 
@@ -268,7 +257,7 @@ class ConsumedMsgSchema(Schema):
     params = fields.Dict()
     text_preprocessed = fields.Str()
     output = fields.Str()
-    warnings = fields.List(fields.Str)
+    warnings = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
 
     class Meta:
         unknown = INCLUDE

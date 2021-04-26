@@ -109,7 +109,11 @@ class TextSummarizerService:
                     serialized_encoded_text = data.pop('text_encodings')
                     encoded_text = pickle.loads(serialized_encoded_text)
 
-                    params, invalid_params = validate_params(data['params'])
+                    params, invalid_params, warnings = validate_params(data['params'])
+                    if 'warnings' in data:
+                        data['warnings'].update(warnings)
+                    else:
+                        data['warnings'] = warnings
                     self.logger.debug(f"Valid params: {params}")
                     self.logger.debug(f"Invalid params: {invalid_params}")
                     data['params'] = params  # update params to keep only the valid ones
