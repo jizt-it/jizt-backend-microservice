@@ -181,6 +181,8 @@ class ResponseSchema(Schema):
             The parameters with which the summary was generated.
         language (:obj:`str`):
             The language of the summary.
+        warnings (:obj:`dict`):
+            The warnings derived from the client's request (if any).
     """
 
     summary_id = fields.Str(required=True)
@@ -191,6 +193,7 @@ class ResponseSchema(Schema):
     model = fields.Str(required=True)
     params = fields.Dict(required=True)
     language = fields.Str(required=True)
+    warnings = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
 
     @pre_dump
     def summary_to_response(self, summary: Summary, **kwargs):
@@ -206,17 +209,21 @@ class ResponseSchema(Schema):
         <https://marshmallow.readthedocs.io/en/stable/api_reference.html#marshmallow.pre_dump>`__.
         """
 
-        return {"summary_id": summary.id_,
-                "started_at": summary.started_at,
-                "ended_at": summary.ended_at,
-                "status": summary.status,
-                "output": summary.output,
-                "model": summary.model,
-                "params": summary.params,
-                "language": summary.language}
+        response = {"summary_id": summary.id_,
+                    "started_at": summary.started_at,
+                    "ended_at": summary.ended_at,
+                    "status": summary.status,
+                    "output": summary.output,
+                    "model": summary.model,
+                    "params": summary.params,
+                    "language": summary.language}
+        response.update(**kwargs)  # e.g. warnings
+
+        return response
 
     class Meta:
         ordered = True
+        unknown = EXCLUDE
 
 
 class TextEncodingProducedMsgSchema(Schema):

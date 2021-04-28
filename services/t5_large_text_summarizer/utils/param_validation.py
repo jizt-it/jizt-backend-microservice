@@ -20,8 +20,8 @@
 __version__ = '0.1.1'
 
 from default_params import DefaultParam
-from typing import Union, Any, Tuple, List
 from warning_messages import ValidationWarning, WarningMessage
+from typing import Union, Any, Tuple, List
 
 # Requirements the different params must comply with
 # The key 'type_' is always required; 'lower_bound' and 'upper_bound' are optional.
