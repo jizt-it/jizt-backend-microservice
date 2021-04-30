@@ -173,19 +173,33 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
             if conn is not None:
                 conn.close()
 
-    def update_summary(self, id_: str, **kwargs):
+    def update_summary(self,
+                       id_: str,
+                       source: str = None,
+                       summary: str = None,  # output
+                       model: SupportedModel = None,
+                       params: dict = None,
+                       status: SummaryStatus = None,
+                       started_at: datetime = None,
+                       ended_at: datetime = None,
+                       language: SupportedLanguage = None,
+                       warnings: dict = None):
         """See base class."""
 
-        ordered_kwargs = OrderedDict(kwargs)
+        args = OrderedDict({key: value for key, value in locals().items()
+                            if value is not None and key != "self"})
+
+        if "warnings" in args:
+            warnings = args.pop("warnings")
 
         # Convert dicts to Json
-        dicts = [key for key in ordered_kwargs
-                 if isinstance(ordered_kwargs[key], dict)]
+        dicts = [key for key in args
+                 if isinstance(args[key], dict)]
         for key in dicts:
-            ordered_kwargs[key] = Json(ordered_kwargs[key])
+            args[key] = Json(args[key])
 
-        keys = list(ordered_kwargs.keys())
-        values = list(ordered_kwargs.values()) + [id_]
+        keys = list(args.keys())
+        values = list(args.values()) + [id_]
         concat = StringIO()
         concat.write("UPDATE jizt.summary SET ")
         for field in keys[:-1]:
@@ -194,25 +208,29 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
         concat.write("FROM jizt.id_raw_id_preprocessed ")
         concat.write("WHERE id_raw = %s AND id_preprocessed = summary_id;")
 
-        SQL = concat.getvalue()
+        SQL_UPDATE_SUMMARY = concat.getvalue()
+        SQL_UPDATE_WARNINGS = """UPDATE jizt.id_raw_id_preprocessed
+                                 SET warnings = %s
+                                 WHERE id_raw = %s;"""
 
         if self.summary_exists(id_):
             conn = None
             try:
                 conn = self._connect()
                 with conn.cursor() as cur:
-                    cur.execute(SQL, values)
-                    if cur.rowcount == 0:  # nothing updated
-                        return None
+                    cur.execute(SQL_UPDATE_SUMMARY, values)
+                    summary = None if cur.rowcount == 0 else self.get_summary(id_)[0]
+                    cur.execute(SQL_UPDATE_WARNINGS, id_, warnings)
+                    warnings = None if cur.rowcount == 0 else self.get_summary(id_)[1]
                     conn.commit()
-                    return self.get_summary(id_)
+                    return (summary, warnings)
             except (Exception, psycopg2.DatabaseError) as error:
                 self.logger.error(error)
             finally:
                 if conn is not None:
                     conn.close()
         else:
-            return None
+            return (None, None)
 
     def update_source(self,
                       old_source: str,

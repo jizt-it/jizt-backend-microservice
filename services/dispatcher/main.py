@@ -253,8 +253,8 @@ class PlainTextSummary(Resource):
                 f'"{message_value[:500]} [...]"'
             )
 
-        warnings = {'warnings': warnings} if warnings is not None else {}
-        response = self.ok_response_schema.dump(summary, **warnings)
+        response = {"summary": summary, "warnings": warnings}
+        response = self.ok_response_schema.dump(response)
         return response, 202  # ACCEPTED
 
     def get(self, summary_id):
@@ -289,8 +289,8 @@ class PlainTextSummary(Resource):
         # this is the raw id. Therefore, we make sure the returned id matches the
         # id requested (raw id).
         summary.id_ = summary_id
-        warnings = {'warnings': warnings} if warnings is not None else {}
-        response = self.ok_response_schema.dump(summary, **warnings)
+        response = {"summary": summary, "warnings": warnings}
+        response = self.ok_response_schema.dump(response)
         return response, 200  # OK
 
     def _validate_post_request_json(self, json):

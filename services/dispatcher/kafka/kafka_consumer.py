@@ -176,7 +176,7 @@ class ConsumerLoop(StoppableThread):
                                 "summary": data["output"],
                                 "params": data["params"]  # validated params
                             })
-                        summary = self.db.update_summary(msg.key(), **update_columns)
+                        summary, _ = self.db.update_summary(msg.key(), **update_columns)
                         self.logger.debug(f"Consumer message processed. "
                                           f"Summary updated: {summary}")
         finally:

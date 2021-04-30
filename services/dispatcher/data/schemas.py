@@ -127,22 +127,22 @@ class PlainTextRequestSchema(Schema):
             del data["warnings"] 
 
         # Check model
-        if ("model" not in data
-            or "model" in data and (data["model"] is None
-                                    or data["model"] not in supp_models)):
+        if "model" not in data or "model" in data and data["model"] is None:
             data["model"] = SupportedModel.T5_LARGE.value
+        elif "model" in data and data["model"] not in supp_models:
             warning_msgs["model"] = [WarningMessage.UNSUPPORTED_MODEL.value]
+            data["model"] = SupportedModel.T5_LARGE.value
 
         # Check params
         if "params" not in data or "params" in data and data["params"] is None:
             data["params"] = {}
 
         # Check languages
-        if ("language" not in data
-            or "language" in data and (data["language"] is None
-                                       or data["language"] not in supp_languages)):
+        if "language" not in data or "language" in data and data["language"] is None:
             data["language"] = SupportedLanguage.ENGLISH.value
+        elif "language" in data and data["language"] not in supp_languages:
             warning_msgs["language"] = [WarningMessage.UNSUPPORTED_LANGUAGE.value]
+            data["language"] = SupportedLanguage.ENGLISH.value
 
         # Check cache
         if ("cache" not in data or "cache" in data and data["cache"] is None):
@@ -196,8 +196,11 @@ class ResponseSchema(Schema):
     warnings = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
 
     @pre_dump
-    def summary_to_response(self, summary: Summary, **kwargs):
-        """Transform a :obj:`Summary` object into a response.
+    def build_reponse(self, data: dict, **kwargs):
+        """Build a response with the :obj:`Summary` and warnings (if any).
+
+        The data must have the following scheme: ``{"summary": summary_object,
+        "warnings": warnings}``.
 
         This method is executed when calling :meth:`Schema.dump`. Since a
         summary includes more information than it will be included in the
@@ -209,6 +212,8 @@ class ResponseSchema(Schema):
         <https://marshmallow.readthedocs.io/en/stable/api_reference.html#marshmallow.pre_dump>`__.
         """
 
+        summary = data["summary"]
+        warnings = data["warnings"]
         response = {"summary_id": summary.id_,
                     "started_at": summary.started_at,
                     "ended_at": summary.ended_at,
@@ -217,7 +222,9 @@ class ResponseSchema(Schema):
                     "model": summary.model,
                     "params": summary.params,
                     "language": summary.language}
-        response.update(kwargs)  # e.g. warnings
+
+        if warnings is not None:
+            response["warnings"] = warnings
 
         return response
 
