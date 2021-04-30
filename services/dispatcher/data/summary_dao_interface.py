@@ -33,11 +33,13 @@ class SummaryDAOInterface:
                 The summary id.
 
         Returns:
-            :obj:`Summary`: The summary with the specified id or
-            :obj:`None` if there is not any summary with that id.
+            :obj:tuple(:obj:`Summary`, :obj:`dict`): A tuple with the summary with the
+            specified id and its associated warnings (if there are no warnings then
+            they will be :obj:`None`) or a tuple containing two :obj:`None`s if there
+            is not any summary with that id.
         """
 
-    def insert_summary(self, summary: Summary, cache: bool):
+    def insert_summary(self, summary: Summary, cache: bool, warnings: dict):
         """Insert a new summary to the database.
 
         Args:
@@ -46,6 +48,8 @@ class SummaryDAOInterface:
             cache (:obj:`bool`):
                 Whether the summary must be cached, i.e., permanently stored in the
                 database.
+            warnings (:obj:`dict`):
+                The warnings derived from the user request.
         """
 
     def delete_summary(self, id_: str, delete_source: bool):

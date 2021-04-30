@@ -109,6 +109,7 @@ CREATE TABLE id_raw_id_preprocessed (
         REFERENCES summary ON DELETE CASCADE ON UPDATE CASCADE,
     cache               BOOLEAN NOT NULL DEFAULT TRUE,
     last_accessed       TIMESTAMPTZ NOT NULL,
+    warnings            JSON,
     PRIMARY KEY(id_raw, id_preprocessed)
 );
 

@@ -19,11 +19,9 @@
 
 __version__ = '0.1.0'
 
-import re
 from enum import Enum
 from supported_models import SupportedModel
 from supported_languages import SupportedLanguage
-from typing import Union
 
 
 class WarningMessage(Enum):

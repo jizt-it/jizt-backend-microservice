@@ -217,7 +217,7 @@ class ResponseSchema(Schema):
                     "model": summary.model,
                     "params": summary.params,
                     "language": summary.language}
-        response.update(**kwargs)  # e.g. warnings
+        response.update(kwargs)  # e.g. warnings
 
         return response
 
@@ -236,12 +236,14 @@ class TextEncodingProducedMsgSchema(Schema):
             The model used to generate the summary.
         params (:obj:`dict`):
             The params used in the summary generation.
+        warnings (:obj:`dict`):
+            The warnings derived from the client's request (if any).
     """
 
     text_preprocessed = fields.Str(required=True)
     model = fields.Str(required=True)
     params = fields.Dict(required=True)
-    warnings = fields.Str()
+    warnings = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
 
 
 class ConsumedMsgSchema(Schema):

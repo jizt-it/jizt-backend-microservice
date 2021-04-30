@@ -56,7 +56,7 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
         """See base class."""
 
         SQL = """SELECT summary_id, content, summary, model_name, params,
-                        status, started_at, ended_at, language_tag
+                        status, started_at, ended_at, language_tag, warnings
                  FROM jizt.id_raw_id_preprocessed JOIN jizt.summary
                       ON id_preprocessed = summary_id JOIN jizt.source
                       USING (source_id)
@@ -85,15 +85,15 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
                         started_at=summary_row[6],
                         ended_at=summary_row[7],
                         language=SupportedLanguage(summary_row[8])
-                    )
-                return None  # summary doesn't exist
+                    ), summary_row[9]  # warnings
+                return (None, None)  # summary doesn't exist
         except (Exception, psycopg2.DatabaseError) as error:
             self.logger.error(error)
         finally:
             if conn is not None:
                 conn.close()
 
-    def insert_summary(self, summary: Summary, cache: bool):
+    def insert_summary(self, summary: Summary, cache: bool, warnings: dict):
         """See base class."""
 
         SQL_GET_SOURCE = """SELECT source_id
@@ -107,7 +107,7 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
                                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"""
 
         SQL_INSERT_ID = """INSERT INTO jizt.id_raw_id_preprocessed
-                           VALUES (%s, %s, %s, %s);"""
+                           VALUES (%s, %s, %s, %s, %s);"""
 
         conn = None
         try:
@@ -134,7 +134,8 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
                 cur.execute(SQL_INSERT_ID, (summary.id_,
                                             summary.id_,
                                             cache,
-                                            datetime.now()))
+                                            datetime.now(),
+                                            Json(warnings)))
                 conn.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.logger.error(error)

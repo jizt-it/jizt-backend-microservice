@@ -143,7 +143,7 @@ class ConsumerLoop(StoppableThread):
                             data["model"],
                             data["params"]
                         )
-                        summary = self.db.get_summary(id_preprocessed)
+                        summary, _ = self.db.get_summary(id_preprocessed)
                         if (summary is not None and
                                 summary.status == SummaryStatus.COMPLETED.value):
                             # Only update the id in case it is necessary
@@ -152,7 +152,7 @@ class ConsumerLoop(StoppableThread):
                             self.logger.debug("Summary with preprocessed text already "
                                               "exists. Not producing to Encoder.")
                         else:
-                            old_source = self.db.get_summary(msg.key()).source
+                            old_source = self.db.get_summary(msg.key())[0].source
                             self.db.update_source(old_source,
                                                   data["text_preprocessed"],
                                                   msg.key(),
@@ -168,7 +168,8 @@ class ConsumerLoop(StoppableThread):
                         self.logger.debug(f"Current summary count: {count}.")
                     else:
                         # Important: keys must match DB columns
-                        update_columns = {"status": data["summary_status"]}
+                        update_columns = {"status": data["summary_status"],
+                                          "warnings": data.pop("warnings", None)}
                         if data["summary_status"] == SummaryStatus.COMPLETED.value:
                             update_columns.update({
                                 "ended_at": datetime.now(),
