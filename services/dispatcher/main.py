@@ -238,7 +238,7 @@ class PlainTextSummary(Resource):
                 ended_at=None,
                 language=SupportedLanguage.ENGLISH
             )
-            warnings = data.pop('warnings', None)
+            warnings = data['warnings'] if 'warnings' in data else None
             self.dispatcher_service.db.insert_summary(summary, cache, warnings)
 
             topic = KafkaTopic.TEXT_PREPROCESSING.value

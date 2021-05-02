@@ -175,28 +175,24 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
 
     def update_summary(self,
                        id_: str,
-                       source: str = None,
                        summary: str = None,  # output
-                       model: SupportedModel = None,
                        params: dict = None,
-                       status: SummaryStatus = None,
+                       status: str = None,
                        started_at: datetime = None,
                        ended_at: datetime = None,
-                       language: SupportedLanguage = None,
                        warnings: dict = None):
         """See base class."""
 
         args = OrderedDict({key: value for key, value in locals().items()
-                            if value is not None and key != "self"})
+                            if value is not None and key not in ('self', 'id_')})
+
+        # Convert dicts to Json
+        dicts = [key for key in args if isinstance(args[key], dict)]
+        for key in dicts:
+            args[key] = Json(args[key])
 
         if "warnings" in args:
             warnings = args.pop("warnings")
-
-        # Convert dicts to Json
-        dicts = [key for key in args
-                 if isinstance(args[key], dict)]
-        for key in dicts:
-            args[key] = Json(args[key])
 
         keys = list(args.keys())
         values = list(args.values()) + [id_]
@@ -218,9 +214,9 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
             try:
                 conn = self._connect()
                 with conn.cursor() as cur:
-                    cur.execute(SQL_UPDATE_SUMMARY, values)
+                    cur.execute(SQL_UPDATE_SUMMARY, values)  # values is a list!
                     summary = None if cur.rowcount == 0 else self.get_summary(id_)[0]
-                    cur.execute(SQL_UPDATE_WARNINGS, id_, warnings)
+                    cur.execute(SQL_UPDATE_WARNINGS, (warnings, id_))
                     warnings = None if cur.rowcount == 0 else self.get_summary(id_)[1]
                     conn.commit()
                     return (summary, warnings)

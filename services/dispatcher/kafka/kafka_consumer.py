@@ -167,6 +167,9 @@ class ConsumerLoop(StoppableThread):
                         count = self.db.increment_summary_count(msg.key())
                         self.logger.debug(f"Current summary count: {count}.")
                     else:
+                        # TODO: get warnings and update them
+                        # TODO: schemas must be changed, warnings shouldn't be passed
+                        # TODO: throughout all the pipeline
                         # Important: keys must match DB columns
                         update_columns = {"status": data["summary_status"],
                                           "warnings": data.pop("warnings", None)}
@@ -176,6 +179,7 @@ class ConsumerLoop(StoppableThread):
                                 "summary": data["output"],
                                 "params": data["params"]  # validated params
                             })
+                        self.logger.debug(f"UPDATE: {update_columns}")
                         summary, _ = self.db.update_summary(msg.key(), **update_columns)
                         self.logger.debug(f"Consumer message processed. "
                                           f"Summary updated: {summary}")

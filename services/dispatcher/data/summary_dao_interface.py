@@ -69,14 +69,11 @@ class SummaryDAOInterface:
 
     def update_summary(self,
                        id_: str,
-                       source: str,
                        summary: str,  # output
-                       model: SupportedModel,
                        params: dict,
-                       status: SummaryStatus,
+                       status: str,
                        started_at: datetime,
                        ended_at: datetime,
-                       language: SupportedLanguage,
                        warnings: dict):
         """Update an existing summary.
 
