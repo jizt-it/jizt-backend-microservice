@@ -217,7 +217,7 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
                     cur.execute(SQL_UPDATE_SUMMARY, values)  # values is a list!
                     cur.execute(SQL_UPDATE_WARNINGS, (warnings, id_))
                     conn.commit()
-                    return (summary, warnings)
+                    return self.get_summary(id_)
             except (Exception, psycopg2.DatabaseError) as error:
                 self.logger.error(error)
             finally:

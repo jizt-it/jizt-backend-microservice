@@ -36,7 +36,7 @@ dispatcher:
   ports:
     svc: 5000
     container: 5000
-  image: gcr.io/jizt-308512/jizt/dispatcher:0.1.3-rc31
+  image: gcr.io/jizt-308512/jizt/dispatcher:0.1.3-rc35
   requests:
     memory: 32Mi
     cpu: 20m
@@ -93,7 +93,7 @@ t5LargeTextSummarizer:
   ports:
     svc: 5000
     container: 5000
-  image: gcr.io/jizt-308512/jizt/t5-large-text-summarizer:0.0.27-rc6
+  image: gcr.io/jizt-308512/jizt/t5-large-text-summarizer:0.0.27-rc7
   volumeMounts:
     modelsMountPath: "/home/text_summarizer/models"
     tokenizerPath: "t5-small/tokenizer"

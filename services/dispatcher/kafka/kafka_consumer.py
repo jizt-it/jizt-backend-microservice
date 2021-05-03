@@ -225,7 +225,7 @@ class ConsumerLoop(StoppableThread):
         self.producer.poll(1)
 
     @classmethod
-    def _update_warnings(cls, old_warnings: dict, new_warnings: dict):
+    def _update_warnings(cls, prev_warnings: dict, new_warnings: dict):
         """Add new warnings to the existent ones.
 
         If there were already warnings for a certain key, the new warnings are
@@ -236,7 +236,7 @@ class ConsumerLoop(StoppableThread):
         are simply added.
 
         Args:
-            old_warnings (:obj:`dict`):
+            prev_warnings (:obj:`dict`):
                 A :obj:`dict` whose keys are :obj:`str` (the parameters for which
                 there are warnings) and whose values are :obj:`list`s containing
                 :obj:`str` (i.e. the previous warnings).
@@ -246,12 +246,15 @@ class ConsumerLoop(StoppableThread):
                 :obj:`str` (i.e. the new warnings).
 
         Returns:
-            :obj:`dict`: A dictionary with the updated warnings.
+            :obj:`dict`: A dictionary with the updated warnings. If
+            :obj:`prev_warnings` is :obj:`None` and :obj:`new_warnings` is either
+            :obj:`None` or empty, :obj:`None` will be returned.
         """
 
         if new_warnings is None or not new_warnings:
-            return old_warnings
+            return prev_warnings
 
+        old_warnings = prev_warnings.copy() if prev_warnings is not None else {}
         warnings = old_warnings.copy()
         # New warnings
         new_keys = {key: value for key, value in new_warnings.items()

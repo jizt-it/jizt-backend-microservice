@@ -110,6 +110,12 @@ class TextSummarizerService:
                     encoded_text = pickle.loads(serialized_encoded_text)
 
                     params, invalid_params, warnings = validate_params(data['params'])
+                    update_status['warnings'] = warnings
+                    self._produce_message(
+                        KafkaTopic.DISPATCHER.value,
+                        msg.key(),
+                        self.disp_produced_msg_schema.dumps(update_status)
+                    )
                     self.logger.debug(f"Valid params: {params}")
                     self.logger.debug(f"Invalid params: {invalid_params}")
                     self.logger.debug(f"Warnings: {warnings}")
@@ -126,13 +132,6 @@ class TextSummarizerService:
                         f'Message produced: [topic]: "{topic}", '
                         f'[key]: {msg.key()}, [value]: '
                         f'"{message_value[:500]} [...]'
-                    )
-
-                    update_status['warnings'] = warnings
-                    self._produce_message(
-                        KafkaTopic.DISPATCHER.value,
-                        msg.key(),
-                        self.disp_produced_msg_schema.dumps(update_status)
                     )
         finally:
             self.logger.debug("Consumer loop stopped. Closing consumer...")

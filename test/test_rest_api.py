@@ -139,7 +139,7 @@ def test_request_source_and_non_existent_params():
     response = post_pull_validate_response(json_attributes)
     assert 'non-existing-param' not in response.json()['params']
     assert 'another-non-existing-param' not in response.json()['params']
-    assert 'non_existing_param' in response.json()['warnings']
+    assert 'non-existing-param' in response.json()['warnings']
     assert 'another-non-existing-param' in response.json()['warnings']
     del json_attributes['params']['non-existing-param']
     del json_attributes['params']['another-non-existing-param']
