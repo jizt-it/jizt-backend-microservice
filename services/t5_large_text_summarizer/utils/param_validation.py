@@ -27,11 +27,11 @@ from typing import Union, Any, Tuple, List
 # The key 'type_' is always required; 'lower_bound' and 'upper_bound' are optional.
 PARAMS_VALIDATION_REQUISITES = {
     DefaultParam.RELATIVE_MAX_LENGTH.name.lower(): {'type_': float,
-                                                     'lower_bound': 0.1,
-                                                     'upper_bound': 1.0},
+                                                    'lower_bound': 0.1,
+                                                    'upper_bound': 1.0},
     DefaultParam.RELATIVE_MIN_LENGTH.name.lower(): {'type_': float,
-                                                     'lower_bound': 0.1,
-                                                     'upper_bound': 1.0},
+                                                    'lower_bound': 0.1,
+                                                    'upper_bound': 1.0},
     DefaultParam.DO_SAMPLE.name.lower(): {'type_': bool},
     DefaultParam.EARLY_STOPPING.name.lower(): {'type_': (bool)},
     DefaultParam.NUM_BEAMS.name.lower(): {'type_': int,
@@ -169,7 +169,7 @@ def _validate_value(
                                     lower_bound=lower_bound,
                                     upper_bound=upper_bound))
     elif type_ is bool and type(value) is not bool:
-            warning_messages.append(WARNING(WarningMessage.BOOL))
+        warning_messages.append(WARNING(WarningMessage.BOOL))
 
     return len(warning_messages) == 0, warning_messages
 

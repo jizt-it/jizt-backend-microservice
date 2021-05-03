@@ -2,7 +2,7 @@ name: Deploy to GKE
 
 on:
   push:
-    branches: [ enh/feedback ] # [ main ]
+    branches: [ enh/feedback ]
 
 env:
   # PROJECT_ID: ${{ secrets.GKE_PROJECT_ID }}
@@ -33,7 +33,7 @@ jobs:
     - run: python -c 'import nltk; nltk.download("punkt")'
 
     - name: Run tests
-      run: pytest test --ignore test/test_text_encoding.py
+      run: pytest test --ignore test/test_text_encoding.py -vvv
       
     # # Setup gcloud CLI
     # - uses: google-github-actions/setup-gcloud@v0.2.0

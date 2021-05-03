@@ -124,7 +124,7 @@ class PlainTextRequestSchema(Schema):
 
         # Prevent the client from including 'warnings' in the request
         if "warnings" in data:
-            del data["warnings"] 
+            del data["warnings"]
 
         # Check model
         if "model" not in data or "model" in data and data["model"] is None:

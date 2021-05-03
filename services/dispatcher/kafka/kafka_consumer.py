@@ -224,7 +224,8 @@ class ConsumerLoop(StoppableThread):
         # be invoked during this method call.
         self.producer.poll(1)
 
-    def _update_warnings(self, old_warnings: dict, new_warnings: dict):
+    @classmethod
+    def _update_warnings(cls, old_warnings: dict, new_warnings: dict):
         """Add new warnings to the existent ones.
 
         If there were already warnings for a certain key, the new warnings are
