@@ -64,14 +64,11 @@ class TextEncodingsConsumedMsgSchema(Schema):
             The model used to generate the summary.
         params (:obj:`dict`):
             The params used in the summary generation.
-        warnings (:obj:`dict`):
-            The warnings derived from the client's request (if any).
     """
 
     text_preprocessed = fields.Str(required=True)
     model = fields.Str(required=True)
     params = fields.Dict(required=True)
-    warnings = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
 
 
 class TextSumarizationProducedMsgSchema(Schema):
@@ -82,13 +79,10 @@ class TextSumarizationProducedMsgSchema(Schema):
             The encoded text.
         params (:obj:`dict`):
             The params used in the summary generation.
-        warnings (:obj:`dict`):
-            The warnings derived from the client's request (if any).
     """
 
     text_encodings = JSONSerializableBytesField(required=True)
     params = fields.Dict(required=True)
-    warnings = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
 
 
 class DispatcherProducedMsgSchema(Schema):
@@ -97,6 +91,9 @@ class DispatcherProducedMsgSchema(Schema):
     Fields:
         summary_status (:obj:`str`):
             The status of the summary.
+        warnings (:obj:`dict`):
+            The warnings derived from the client's request (if any).
     """
 
     summary_status = fields.Str(required=True)
+    warnings = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))

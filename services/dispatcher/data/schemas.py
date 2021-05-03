@@ -17,7 +17,7 @@
 
 """Marshmallow Schemas for DispatcherService."""
 
-__version__ = '0.1.10'
+__version__ = '0.1.11'
 
 from datetime import datetime
 from marshmallow import Schema, fields, pre_dump, pre_load, EXCLUDE, INCLUDE
@@ -243,14 +243,11 @@ class TextEncodingProducedMsgSchema(Schema):
             The model used to generate the summary.
         params (:obj:`dict`):
             The params used in the summary generation.
-        warnings (:obj:`dict`):
-            The warnings derived from the client's request (if any).
     """
 
     text_preprocessed = fields.Str(required=True)
     model = fields.Str(required=True)
     params = fields.Dict(required=True)
-    warnings = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
 
 
 class ConsumedMsgSchema(Schema):

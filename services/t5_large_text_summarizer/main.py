@@ -17,7 +17,7 @@
 
 """Text Summarizer."""
 
-__version__ = '0.1.4'
+__version__ = '0.1.5'
 
 import os
 import argparse
@@ -110,12 +110,9 @@ class TextSummarizerService:
                     encoded_text = pickle.loads(serialized_encoded_text)
 
                     params, invalid_params, warnings = validate_params(data['params'])
-                    if 'warnings' in data:
-                        data['warnings'].update(warnings)
-                    else:
-                        data['warnings'] = warnings
                     self.logger.debug(f"Valid params: {params}")
                     self.logger.debug(f"Invalid params: {invalid_params}")
+                    self.logger.debug(f"Warnings: {warnings}")
                     data['params'] = params  # update params to keep only the valid ones
                     summarized_text = self.summarizer.summarize(encoded_text, **params)
                     data['summary'] = summarized_text
@@ -129,6 +126,13 @@ class TextSummarizerService:
                         f'Message produced: [topic]: "{topic}", '
                         f'[key]: {msg.key()}, [value]: '
                         f'"{message_value[:500]} [...]'
+                    )
+
+                    update_status['warnings'] = warnings
+                    self._produce_message(
+                        KafkaTopic.DISPATCHER.value,
+                        msg.key(),
+                        self.disp_produced_msg_schema.dumps(update_status)
                     )
         finally:
             self.logger.debug("Consumer loop stopped. Closing consumer...")

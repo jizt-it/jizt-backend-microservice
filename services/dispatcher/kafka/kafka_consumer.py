@@ -17,7 +17,7 @@
 
 """Kafka Consumer."""
 
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 
 import logging
 import socket
@@ -162,24 +162,27 @@ class ConsumerLoop(StoppableThread):
                             self._produce_message(KafkaTopic.TEXT_ENCODING.value,
                                                   msg.key(),
                                                   message_value)
+                            # If the preprocessor generated warnings, we would have to
+                            # update the DB here (for now it doesn't produce them)
                             self.logger.debug("Preprocessed text does not exist. "
                                               "Producing to Encoder.")
                         count = self.db.increment_summary_count(msg.key())
                         self.logger.debug(f"Current summary count: {count}.")
                     else:
-                        # TODO: get warnings and update them
-                        # TODO: schemas must be changed, warnings shouldn't be passed
-                        # TODO: throughout all the pipeline
+                        # Update warnings
+                        warnings = self._update_warnings(
+                            self.db.get_summary(msg.key())[1],  # previous warnings
+                            data.pop('warnings', {})
+                        )
                         # Important: keys must match DB columns
                         update_columns = {"status": data["summary_status"],
-                                          "warnings": data.pop("warnings", None)}
+                                          "warnings": warnings}
                         if data["summary_status"] == SummaryStatus.COMPLETED.value:
                             update_columns.update({
                                 "ended_at": datetime.now(),
                                 "summary": data["output"],
                                 "params": data["params"]  # validated params
                             })
-                        self.logger.debug(f"UPDATE: {update_columns}")
                         summary, _ = self.db.update_summary(msg.key(), **update_columns)
                         self.logger.debug(f"Consumer message processed. "
                                           f"Summary updated: {summary}")
@@ -220,6 +223,46 @@ class ConsumerLoop(StoppableThread):
         # Wait up to 1 second for events. Callbacks will
         # be invoked during this method call.
         self.producer.poll(1)
+
+    def _update_warnings(self, old_warnings: dict, new_warnings: dict):
+        """Add new warnings to the existent ones.
+
+        If there were already warnings for a certain key, the new warnings are
+        concatenated to the previous ones, e.g.
+        {"key_1": ["warning_old_1", "warnings_old_2"]} will be updated to
+        {"key_1": ["warning_old_1", "warnings_old_2", "new_warning_1", ...]}.
+        Previous non-common keys remain (previous warnings), and new, non-common ones
+        are simply added.
+
+        Args:
+            old_warnings (:obj:`dict`):
+                A :obj:`dict` whose keys are :obj:`str` (the parameters for which
+                there are warnings) and whose values are :obj:`list`s containing
+                :obj:`str` (i.e. the previous warnings).
+            new_warnings (:obj:`dict`):
+                A :obj:`dict` whose keys are :obj:`str` (the parameters for which
+                there are warnings) and whose values are :obj:`list`s containing
+                :obj:`str` (i.e. the new warnings).
+
+        Returns:
+            :obj:`dict`: A dictionary with the updated warnings.
+        """
+
+        if new_warnings is None or not new_warnings:
+            return old_warnings
+
+        warnings = old_warnings.copy()
+        # New warnings
+        new_keys = {key: value for key, value in new_warnings.items()
+                    if key not in old_warnings}
+        warnings.update(new_keys)
+        # Concatenate values of common keys (values are lists)
+        common = {common_key: old_warnings[common_key] + new_warnings[common_key]
+                  for common_key in [common_key for common_key in old_warnings
+                                     if common_key in new_warnings]}
+        warnings.update(common)
+
+        return warnings
 
     def kafka_delivery_callback(self, err: KafkaError, msg: Message):
         """Kafka per-message delivery callback.

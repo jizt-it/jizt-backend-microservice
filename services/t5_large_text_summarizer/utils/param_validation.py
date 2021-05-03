@@ -97,16 +97,20 @@ def validate_params(params: dict) -> Tuple[dict, dict]:
     if (min_ in params and max_ in params and params[min_] >= params[max_]):
         invalid_params[min_] = params[min_]
         invalid_params[max_] = params[max_]
-        warning_messages[min_] = [WARNING(WarningMessage.MIN_LENGTH)]
-        warning_messages[max_] = [WARNING(WarningMessage.MAX_LENGTH)]
+        if min_ not in warning_messages:
+            warning_messages[min_] = [WARNING(WarningMessage.MIN_LENGTH)]
+        if max_ not in warning_messages:
+            warning_messages[max_] = [WARNING(WarningMessage.MAX_LENGTH)]
     elif (min_ in params and max_ not in params and
             params[min_] >= DefaultParam.RELATIVE_MAX_LENGTH.value):
         invalid_params[min_] = params[min_]
-        warning_messages[min_] = [WARNING(WarningMessage.MIN_LENGTH_DEFAULT)]
+        if min_ not in warning_messages:
+            warning_messages[min_] = [WARNING(WarningMessage.MIN_LENGTH_DEFAULT)]
     elif (min_ not in params and max_ in params and
             params[max_] <= DefaultParam.RELATIVE_MIN_LENGTH.value):
         invalid_params[max_] = params[max_]
-        warning_messages[max_] = [WARNING(WarningMessage.MAX_LENGTH_DEFAULT)]
+        if max_ not in warning_messages:
+            warning_messages[max_] = [WARNING(WarningMessage.MAX_LENGTH_DEFAULT)]
 
     _ = [params.pop(invalid) for invalid in invalid_params]  # remove invalid params
     for default_param in supported_params:

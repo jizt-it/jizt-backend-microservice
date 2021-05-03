@@ -17,7 +17,7 @@
 
 """Summary Data Access Object (DAO) Implementation."""
 
-__version__ = '0.1.7'
+__version__ = '0.1.8'
 
 import logging
 import psycopg2
@@ -215,9 +215,7 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
                 conn = self._connect()
                 with conn.cursor() as cur:
                     cur.execute(SQL_UPDATE_SUMMARY, values)  # values is a list!
-                    summary = None if cur.rowcount == 0 else self.get_summary(id_)[0]
                     cur.execute(SQL_UPDATE_WARNINGS, (warnings, id_))
-                    warnings = None if cur.rowcount == 0 else self.get_summary(id_)[1]
                     conn.commit()
                     return (summary, warnings)
             except (Exception, psycopg2.DatabaseError) as error:

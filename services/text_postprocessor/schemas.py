@@ -19,7 +19,7 @@
 
 from marshmallow import Schema, fields
 
-__version__ = '0.1.4'
+__version__ = '0.1.5'
 
 
 class TextPostprocessingConsumedMsgSchema(Schema):
@@ -30,13 +30,10 @@ class TextPostprocessingConsumedMsgSchema(Schema):
             The text to be post-processed.
         params (:obj:`dict`):
             The valid params, onced checked by the summarizer.
-        warnings (:obj:`dict`):
-            The warnings derived from the client's request (if any).
     """
 
     summary = fields.Str(required=True)
     params = fields.Dict(required=True)
-    warnings = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
 
 
 class DispatcherProducedMsgSchema(Schema):
