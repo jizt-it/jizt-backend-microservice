@@ -19,42 +19,59 @@
 
 
 /*
-* DROP TYPES and TABLES
+* DROP TABLES, TYPES & SCHEMAS
 */
-DROP TYPE IF EXISTS NLP_TASK CASCADE;
-DROP TYPE IF EXISTS STATUS CASCADE;
+DROP TABLE IF EXISTS summaries.raw_id_preprocessed_id CASCADE;
+DROP TABLE IF EXISTS summaries.summary CASCADE;
+DROP TABLE IF EXISTS summaries.model CASCADE;
+DROP TABLE IF EXISTS summaries.model_family CASCADE;
+DROP TABLE IF EXISTS summaries.vendor CASCADE;
+DROP TABLE IF EXISTS summaries.language CASCADE;
+drop table if exists summaries.source CASCADE;
 
-DROP TABLE IF EXISTS id_raw_id_preprocessed CASCADE;
-DROP TABLE IF EXISTS summary CASCADE;
-DROP TABLE IF EXISTS model CASCADE;
-DROP TABLE IF EXISTS model_family CASCADE;
-DROP TABLE IF EXISTS vendor CASCADE;
-DROP TABLE IF EXISTS language CASCADE;
-DROP TABLE IF EXISTS source CASCADE;
+drop table if exists files.file_id_content_id CASCADE;
+drop table if exists files.content CASCADE;
+
+DROP TYPE IF EXISTS summaries.NLP_TASK;
+DROP TYPE IF EXISTS summaries.STATUS;
+
+DROP TYPE IF EXISTS files.FILE_TYPE;
+
+DROP SCHEMA IF EXISTS summaries;
+DROP SCHEMA IF EXISTS files;
+
+DROP ROLE IF EXISTS dispatcher_summaries;
+DROP ROLE IF EXISTS dispatcher_files;
 
 
 /*
-* CREATE TABLES
+* CREATE SCHEMAS
 */
-CREATE TABLE source (
+CREATE SCHEMA summaries;
+CREATE SCHEMA files;
+
+/*
+* CREATE TABLES for SCHEMA summaries
+*/
+CREATE TABLE summaries.source (
     source_id           CHAR(64) PRIMARY KEY,
     content             TEXT NOT NULL,
     content_length      INTEGER NOT NULL CHECK (content_length > 0)
 );
 
-CREATE TABLE language (
+CREATE TABLE summaries.language (
     language_id         SERIAL PRIMARY KEY,
     name                TEXT NOT NULL,
     language_tag        TEXT UNIQUE NOT NULL
 );
 
-CREATE TABLE vendor (
+CREATE TABLE summaries.vendor (
     vendor_id           SERIAL PRIMARY KEY,
     name                TEXT UNIQUE NOT NULL,
     see                 TEXT
 );
 
-CREATE TABLE model_family (
+CREATE TABLE summaries.model_family (
     family_id           SERIAL PRIMARY KEY,
     name                TEXT UNIQUE NOT NULL,
     authors             TEXT[],
@@ -63,72 +80,115 @@ CREATE TABLE model_family (
     see                 TEXT
 );
 
-CREATE TYPE NLP_TASK AS ENUM ('summarization', 'question-answering',
-                              'text-classification', 'conversational',
-                              'translation');
-CREATE TABLE model (
+CREATE TYPE summaries.NLP_TASK AS ENUM ('summarization', 'question-answering',
+                                        'text-classification', 'conversational',
+                                        'translation');
+CREATE TABLE summaries.model (
     model_id            SERIAL PRIMARY KEY,
     name                TEXT UNIQUE NOT NULL,
     family_name         TEXT NOT NULL
         CONSTRAINT FK_family_name
-        REFERENCES model_family(name) ON UPDATE CASCADE,
-    tasks               NLP_TASK[] NOT NULL,
+        REFERENCES summaries.model_family(name) ON UPDATE CASCADE,
+    tasks               summaries.NLP_TASK[] NOT NULL,
     vendor_name         TEXT NOT NULL 
         CONSTRAINT FK_vendor_name
-        REFERENCES vendor(name) ON UPDATE CASCADE,
+        REFERENCES summaries.vendor(name) ON UPDATE CASCADE,
     year                DATE,
     see                 TEXT
 );
 
-CREATE TYPE STATUS AS ENUM ('preprocessing', 'encoding', 'summarizing',
-                            'postprocessing', 'completed');
-CREATE TABLE summary (
+CREATE TYPE summaries.STATUS AS ENUM ('preprocessing', 'encoding', 'summarizing',
+                                      'postprocessing', 'completed');
+CREATE TABLE summaries.summary (
     summary_id          CHAR(64) PRIMARY KEY,
     source_id           CHAR(64) NOT NULL
         CONSTRAINT FK_source_id
-        REFERENCES source ON DELETE CASCADE ON UPDATE CASCADE,
+        REFERENCES summaries.source ON DELETE CASCADE ON UPDATE CASCADE,
     summary             TEXT,
     summary_length      INTEGER,
     model_name          TEXT NOT NULL
         CONSTRAINT FK_model_name
-        REFERENCES model(name) ON UPDATE CASCADE,
+        REFERENCES summaries.model(name) ON UPDATE CASCADE,
     params              JSON NOT NULL,
-    status              STATUS NOT NULL,
+    status              summaries.STATUS NOT NULL,
     started_at          TIMESTAMPTZ NOT NULL,
     ended_at            TIMESTAMPTZ,
     language_tag        TEXT NOT NULL
         CONSTRAINT FK_language_tag
-        REFERENCES language(language_tag) ON UPDATE CASCADE,
+        REFERENCES summaries.language(language_tag) ON UPDATE CASCADE,
     request_count       INTEGER NOT NULL CHECK (request_count >= 0) DEFAULT 0
 );
 
-CREATE TABLE id_raw_id_preprocessed (
-    id_raw              CHAR(64) UNIQUE NOT NULL,
-    id_preprocessed     CHAR(64) NOT NULL
-        CONSTRAINT FK_id_preprocessed
-        REFERENCES summary ON DELETE CASCADE ON UPDATE CASCADE,
+CREATE TABLE summaries.raw_id_preprocessed_id (
+    raw_id              CHAR(64) UNIQUE NOT NULL,
+    preprocessed_id     CHAR(64) NOT NULL
+        CONSTRAINT FK_preprocessed_id
+        REFERENCES summaries.summary ON DELETE CASCADE ON UPDATE CASCADE,
     cache               BOOLEAN NOT NULL DEFAULT TRUE,
     last_accessed       TIMESTAMPTZ NOT NULL,
     warnings            JSON,
-    PRIMARY KEY(id_raw, id_preprocessed)
+    PRIMARY KEY(raw_id, preprocessed_id)
 );
+
+/*
+* CREATE TABLES for SCHEMA files
+*/
+CREATE TYPE files.FILE_TYPE AS ENUM ('document', 'audio', 'image', 'video');
+
+CREATE TABLE files.content (
+    content_id          CHAR(64) PRIMARY KEY,
+    content             TEXT NOT NULL
+);
+
+CREATE TABLE files.file_id_content_id (
+    file_id             CHAR(64) UNIQUE NOT NULL,
+    content_id          CHAR(64) NOT NULL
+        CONSTRAINT FK_content_id
+        REFERENCES files.content ON DELETE CASCADE ON UPDATE CASCADE,
+    cache               BOOLEAN NOT NULL DEFAULT TRUE,
+    file_type           files.FILE_TYPE NOT NULL,
+    last_accessed       TIMESTAMPTZ NOT NULL,
+    request_count       INTEGER NOT NULL CHECK (request_count >= 0) DEFAULT 0
+);
+
+/*
+* Set up ROLES
+*/
+CREATE ROLE dispatcher_summaries;
+CREATE ROLE dispatcher_files;
+GRANT CONNECT ON DATABASE jizt TO dispatcher_summaries;
+GRANT CONNECT ON DATABASE jizt TO dispatcher_files;
+GRANT USAGE ON SCHEMA summaries TO dispatcher_summaries;
+GRANT USAGE ON SCHEMA files TO dispatcher_files;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA summaries TO dispatcher_summaries;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA files TO dispatcher_files;
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA summaries TO dispatcher_summaries;
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA files TO dispatcher_files;
+
+/* Users have to be created manually. Kubernetes secrets must be set up.
+*  values.yaml has to refer to the created secrets.
+*
+*  CREATE USER my_user WITH PASSWORD 'my_password';
+*  GRANT my_role TO my_user;
+*/
+
 
 /*
 * INSERTS
 */
-INSERT INTO language
+INSERT INTO summaries.language
 VALUES (DEFAULT, 'English', 'en');
 
-INSERT INTO vendor
+INSERT INTO summaries.vendor
 VALUES (DEFAULT, 'Hugging Face', 'https://huggingface.co');
 
-INSERT INTO model_family
+INSERT INTO summaries.model_family
 VALUES (DEFAULT, 'T5', '{"Colin Raffel", "Noam Shazeer", "Adam Roberts",
                  "Katherine Lee", "Sharan Narang", "Michael Matena",
                  "Yanqi Zhou", "Wei Li", "Peter J. Liu"}',
                  '{"Google"}', '2019-10-23', 'https://arxiv.org/abs/1910.10683');
 
-INSERT INTO model
+INSERT INTO summaries.model
 VALUES (DEFAULT, 't5-large', 'T5', '{"summarization", "translation"}',
         'Hugging Face', '2019-12-12',
         'https://huggingface.co/transformers/model_doc/t5.html');

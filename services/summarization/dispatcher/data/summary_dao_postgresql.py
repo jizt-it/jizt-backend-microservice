@@ -33,6 +33,10 @@ from supported_languages import SupportedLanguage
 from datetime import datetime
 
 
+# PostgreSQL schema
+SCHEMA = 'summaries'
+
+
 class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excepts
     """Summary DAO implementation for Postgresql.
 
@@ -55,16 +59,16 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
     def get_summary(self, id_: str):
         """See base class."""
 
-        SQL = """SELECT summary_id, content, summary, model_name, params,
-                        status, started_at, ended_at, language_tag, warnings
-                 FROM jizt.id_raw_id_preprocessed JOIN jizt.summary
-                      ON id_preprocessed = summary_id JOIN jizt.source
-                      USING (source_id)
-                 WHERE id_raw = %s;"""
+        SQL = f"""SELECT summary_id, content, summary, model_name, params,
+                         status, started_at, ended_at, language_tag, warnings
+                  FROM {SCHEMA}.raw_id_preprocessed_id JOIN {SCHEMA}.summary
+                       ON preprocessed_id = summary_id JOIN {SCHEMA}.source
+                       USING (source_id)
+                  WHERE raw_id = %s;"""
 
-        SQL_UPDATE_LAST_ACCESSED = """UPDATE jizt.id_raw_id_preprocessed
-                                      SET last_accessed = %s
-                                      WHERE id_raw = %s;"""
+        SQL_UPDATE_LAST_ACCESSED = f"""UPDATE {SCHEMA}.raw_id_preprocessed_id
+                                       SET last_accessed = %s
+                                       WHERE raw_id = %s;"""
 
         conn = None
         try:
@@ -96,18 +100,18 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
     def insert_summary(self, summary: Summary, cache: bool, warnings: dict):
         """See base class."""
 
-        SQL_GET_SOURCE = """SELECT source_id
-                            FROM jizt.source
-                            WHERE source_id = %s;"""
+        SQL_GET_SOURCE = f"""SELECT source_id
+                             FROM {SCHEMA}.source
+                             WHERE source_id = %s;"""
 
-        SQL_INSERT_SOURCE = """INSERT INTO jizt.source
-                               VALUES (%s, %s, %s);"""
+        SQL_INSERT_SOURCE = f"""INSERT INTO {SCHEMA}.source
+                                VALUES (%s, %s, %s);"""
 
-        SQL_INSERT_SUMMARY = """INSERT INTO jizt.summary
-                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"""
+        SQL_INSERT_SUMMARY = f"""INSERT INTO {SCHEMA}.summary
+                                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"""
 
-        SQL_INSERT_ID = """INSERT INTO jizt.id_raw_id_preprocessed
-                           VALUES (%s, %s, %s, %s, %s);"""
+        SQL_INSERT_ID = f"""INSERT INTO {SCHEMA}.raw_id_preprocessed_id
+                            VALUES (%s, %s, %s, %s, %s);"""
 
         conn = None
         try:
@@ -150,15 +154,15 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
 
         # Because of ON DELETE CASCADE, this will delete both the
         # source and the summary
-        SQL_DELETE_ALSO_SOURCE = """DELETE FROM jizt.source
-                                    WHERE source_id = (
-                                        SELECT source_id FROM jizt.summary
-                                        WHERE summary_id = %s
-                                    );"""
+        SQL_DELETE_ALSO_SOURCE = f"""DELETE FROM {SCHEMA}.source
+                                     WHERE source_id = (
+                                         SELECT source_id FROM {SCHEMA}.summary
+                                         WHERE summary_id = %s
+                                     );"""
 
         # This will not delete the source
-        SQL_DELETE_SUMMARY = """DELETE FROM jizt.summary
-                                WHERE summary_id = %s;"""
+        SQL_DELETE_SUMMARY = f"""DELETE FROM {SCHEMA}.summary
+                                 WHERE summary_id = %s;"""
 
         conn = None
         try:
@@ -197,17 +201,17 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
         keys = list(args.keys())
         values = list(args.values()) + [id_]
         concat = StringIO()
-        concat.write("UPDATE jizt.summary SET ")
+        concat.write(f"UPDATE {SCHEMA}.summary SET ")
         for field in keys[:-1]:
             concat.write(f"{field} = %s, ")
         concat.write(f"{keys[-1]} = %s ")
-        concat.write("FROM jizt.id_raw_id_preprocessed ")
-        concat.write("WHERE id_raw = %s AND id_preprocessed = summary_id;")
+        concat.write(f"FROM {SCHEMA}.raw_id_preprocessed_id ")
+        concat.write("WHERE raw_id = %s AND preprocessed_id = summary_id;")
 
         SQL_UPDATE_SUMMARY = concat.getvalue()
-        SQL_UPDATE_WARNINGS = """UPDATE jizt.id_raw_id_preprocessed
-                                 SET warnings = %s
-                                 WHERE id_raw = %s;"""
+        SQL_UPDATE_WARNINGS = f"""UPDATE {SCHEMA}.raw_id_preprocessed_id
+                                  SET warnings = %s
+                                  WHERE raw_id = %s;"""
 
         if self.summary_exists(id_):
             conn = None
@@ -235,25 +239,25 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
 
         # The source id is also modified in the summary table
         # because of ON UPDATE CASCADE
-        SQL_UPDATE_SOURCE = """UPDATE jizt.source
-                               SET source_id = %s,
-                                   content = %s,
-                                   content_length = %s
-                               WHERE source_id = %s;"""
+        SQL_UPDATE_SOURCE = f"""UPDATE {SCHEMA}.source
+                                SET source_id = %s,
+                                    content = %s,
+                                    content_length = %s
+                                WHERE source_id = %s;"""
 
-        # The id in id_raw_id_preprocessed is also updated
+        # The id in raw_id_preprocessed_id is also updated
         # because of ON UPDATE CASCADE
-        SQL_UPDATE_SUMMARY_ID = """UPDATE jizt.summary
-                                   SET summary_id = %s
-                                   WHERE summary_id = %s;"""
+        SQL_UPDATE_SUMMARY_ID = f"""UPDATE {SCHEMA}.summary
+                                    SET summary_id = %s
+                                    WHERE summary_id = %s;"""
 
         # We insert the binding (new_summary_id -> new_summary_id) so that a summary
         # can be also retrieved with its preprocessed id
-        SQL_INSERT_PREPROCESSED_ID = """INSERT INTO jizt.id_raw_id_preprocessed
-                                        (id_raw, id_preprocessed, cache, last_accessed)
-                                        SELECT %s, %s, cache, %s
-                                        FROM jizt.id_raw_id_preprocessed
-                                        WHERE id_raw = %s;"""
+        SQL_INSERT_PREPROCESSED_ID =  """INSERT INTO {SCHEMA}.raw_id_preprocessed_id
+                                         (raw_id, preprocessed_id, cache, last_accessed)
+                                         SELECT %s, %s, cache, %s
+                                         FROM {SCHEMA}.raw_id_preprocessed_id
+                                         WHERE raw_id = %s;"""
 
         conn = None
         try:
@@ -280,24 +284,24 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
                                new_preprocessed_id: str):
         """See base class."""
 
-        SQL_UPDATE_ID = """UPDATE jizt.id_raw_id_preprocessed
-                           SET id_preprocessed = %s,
-                               last_accessed = %s
-                           WHERE id_raw = %s
-                           RETURNING cache;"""
+        SQL_UPDATE_ID = f"""UPDATE {SCHEMA}.raw_id_preprocessed_id
+                            SET preprocessed_id = %s,
+                                last_accessed = %s
+                            WHERE raw_id = %s
+                            RETURNING cache;"""
 
-        SQL_UPDATE_CACHE = """UPDATE jizt.id_raw_id_preprocessed
-                              SET cache = %s,
-                                  last_accessed = %s
-                              WHERE id_raw = %s AND cache = FALSE;"""
+        SQL_UPDATE_CACHE = f"""UPDATE {SCHEMA}.raw_id_preprocessed_id
+                               SET cache = %s,
+                                   last_accessed = %s
+                               WHERE raw_id = %s AND cache = FALSE;"""
 
         # Because of ON DELETE CASCADE, this will delete both the
         # source and the summary
-        SQL_DELETE_SUMMARY_OLD = """DELETE FROM jizt.source
-                                    WHERE source_id = (
-                                        SELECT source_id FROM jizt.summary
-                                        WHERE summary_id = %s
-                                    );"""
+        SQL_DELETE_SUMMARY_OLD = f"""DELETE FROM {SCHEMA}.source
+                                     WHERE source_id = (
+                                         SELECT source_id FROM {SCHEMA}.summary
+                                         WHERE summary_id = %s
+                                     );"""
 
         conn = None
         try:
@@ -322,14 +326,14 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
     def update_cache_true(self, id_: str):
         """See base class."""
 
-        SQL = """UPDATE jizt.id_raw_id_preprocessed
-                 SET cache = TRUE,
-                     last_accessed = %s
-                 WHERE CACHE = FALSE AND (id_raw = %s OR id_raw IN (
-                     SELECT id_preprocessed
-                     FROM jizt.id_raw_id_preprocessed
-                     WHERE id_raw = %s
-                 ));"""
+        SQL = f"""UPDATE {SCHEMA}.raw_id_preprocessed_id
+                  SET cache = TRUE,
+                      last_accessed = %s
+                  WHERE CACHE = FALSE AND (raw_id = %s OR raw_id IN (
+                      SELECT preprocessed_id
+                      FROM {SCHEMA}.raw_id_preprocessed_id
+                      WHERE raw_id = %s
+                  ));"""
 
         conn = None
         try:
@@ -346,12 +350,12 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
     def summary_exists(self, id_: str):
         """See base class."""
 
-        SQL_SELECT = """SELECT id_raw FROM jizt.id_raw_id_preprocessed
-                        WHERE id_raw = %s;"""
+        SQL_SELECT = f"""SELECT raw_id FROM {SCHEMA}.raw_id_preprocessed_id
+                         WHERE raw_id = %s;"""
 
-        SQL_UPDATE_LAST_ACCESSED = """UPDATE jizt.id_raw_id_preprocessed
-                                      SET last_accessed = %s
-                                      WHERE id_raw = %s;"""
+        SQL_UPDATE_LAST_ACCESSED = f"""UPDATE {SCHEMA}.raw_id_preprocessed_id
+                                       SET last_accessed = %s
+                                       WHERE raw_id = %s;"""
 
         conn = None
         try:
@@ -370,8 +374,8 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
     def source_exists(self, source: str):
         """See base class."""
 
-        SQL = """SELECT source_id FROM jizt.source
-                 WHERE source_id = %s;"""
+        SQL = f"""SELECT source_id FROM {SCHEMA}.source
+                  WHERE source_id = %s;"""
 
         conn = None
         try:
@@ -389,11 +393,11 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
     def increment_summary_count(self, id_: str):
         """See base class."""
 
-        SQL = """UPDATE jizt.summary
-                 SET request_count = request_count + 1
-                 FROM jizt.id_raw_id_preprocessed
-                 WHERE id_raw = %s AND id_preprocessed = summary_id
-                 RETURNING request_count;"""
+        SQL = f"""UPDATE {SCHEMA}.summary
+                  SET request_count = request_count + 1
+                  FROM {SCHEMA}.raw_id_preprocessed_id
+                  WHERE raw_id = %s AND preprocessed_id = summary_id
+                  RETURNING request_count;"""
 
         conn = None
         try:
@@ -411,21 +415,21 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
     def delete_if_not_cache(self, id_: str):
         """See base class."""
 
-        SQL_DELETE = """DELETE FROM jizt.id_raw_id_preprocessed
-                        WHERE id_raw = %s AND cache = FALSE
-                        RETURNING id_preprocessed;"""
+        SQL_DELETE = f"""DELETE FROM {SCHEMA}.raw_id_preprocessed_id
+                         WHERE raw_id = %s AND cache = FALSE
+                         RETURNING preprocessed_id;"""
 
         # Check if the preprocessed id has to be cached
-        SQL_CACHE = """SELECT cache FROM jizt.id_raw_id_preprocessed
-                       WHERE id_raw = %s;"""
+        SQL_CACHE = f"""SELECT cache FROM {SCHEMA}.raw_id_preprocessed_id
+                        WHERE raw_id = %s;"""
 
         # Because of ON DELETE CASCADE, this will delete both the
         # source and the summary
-        SQL_DELETE_SUMMARY = """DELETE FROM jizt.source
-                                WHERE source_id = (
-                                    SELECT source_id FROM jizt.summary
-                                    WHERE summary_id = %s
-                                );"""
+        SQL_DELETE_SUMMARY = f"""DELETE FROM {SCHEMA}.source
+                                 WHERE source_id = (
+                                     SELECT source_id FROM {SCHEMA}.summary
+                                     WHERE summary_id = %s
+                                 );"""
 
         conn = None
         try:
@@ -452,33 +456,33 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
     def cleanup_cache(self, older_than_seconds: int):
         """See base class."""
 
-        SQL_DELETE_ID_RAW = """
-                 DELETE FROM jizt.id_raw_id_preprocessed
-                 USING jizt.summary
-                 WHERE id_preprocessed = summary_id AND
+        SQL_DELETE_RAW_ID = f"""
+                 DELETE FROM {SCHEMA}.raw_id_preprocessed_id
+                 USING {SCHEMA}.summary
+                 WHERE preprocessed_id = summary_id AND
                  cache = FALSE AND status = 'completed' AND
                  last_accessed < NOW() - (%s::TEXT || ' seconds')::INTERVAL;"""
 
         # Delete summaries that do not correspond to any request
-        SQL_DELETE_SUMMARY = """
-                DELETE FROM jizt.summary
+        SQL_DELETE_SUMMARY = f"""
+                DELETE FROM {SCHEMA}.summary
                 WHERE summary_id IN (
                     SELECT summary_id
-                    FROM jizt.summary
-                    WHERE NOT EXISTS (SELECT 1 FROM jizt.id_raw_id_preprocessed
-                                      WHERE id_preprocessed = summary_id)
+                    FROM {SCHEMA}.summary
+                    WHERE NOT EXISTS (SELECT 1 FROM {SCHEMA}.raw_id_preprocessed_id
+                                      WHERE preprocessed_id = summary_id)
                 )
                 RETURNING source_id;"""
 
         # Delete sources that do not correspond to any summary
-        SQL_DELETE_SOURCE = """DELETE FROM jizt.source
-                               WHERE source_id IN (%s);"""
+        SQL_DELETE_SOURCE = f"""DELETE FROM {SCHEMA}.source
+                                WHERE source_id IN (%s);"""
 
         conn = None
         try:
             conn = self._connect()
             with conn.cursor() as cur:
-                cur.execute(SQL_DELETE_ID_RAW, (older_than_seconds,))
+                cur.execute(SQL_DELETE_RAW_ID, (older_than_seconds,))
                 cur.execute(SQL_DELETE_SUMMARY, (older_than_seconds,))
                 summaries_id = cur.fetchall()
                 if summaries_id:
