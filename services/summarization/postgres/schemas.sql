@@ -27,15 +27,16 @@ DROP TABLE IF EXISTS summaries.model CASCADE;
 DROP TABLE IF EXISTS summaries.model_family CASCADE;
 DROP TABLE IF EXISTS summaries.vendor CASCADE;
 DROP TABLE IF EXISTS summaries.language CASCADE;
-drop table if exists summaries.source CASCADE;
+DROP TABLE IF EXISTS summaries.source CASCADE;
 
-drop table if exists files.file_id_content_id CASCADE;
-drop table if exists files.content CASCADE;
+DROP TABLE IF EXISTS files.file_id_extracted_text_id CASCADE;
+DROP TABLE IF EXISTS files.extracted_text CASCADE;
 
 DROP TYPE IF EXISTS summaries.NLP_TASK;
 DROP TYPE IF EXISTS summaries.STATUS;
 
 DROP TYPE IF EXISTS files.FILE_TYPE;
+DROP TYPE IF EXISTS files.STATUS;
 
 DROP SCHEMA IF EXISTS summaries;
 DROP SCHEMA IF EXISTS files;
@@ -133,22 +134,30 @@ CREATE TABLE summaries.raw_id_preprocessed_id (
 /*
 * CREATE TABLES for SCHEMA files
 */
-CREATE TYPE files.FILE_TYPE AS ENUM ('document', 'audio', 'image', 'video');
+CREATE TYPE files.FILE_TYPE AS ENUM ('pdf', 'xps', 'oxps', 'cbz', 'fb2', 'epub');
 
-CREATE TABLE files.content (
+CREATE TYPE files.STATUS AS ENUM ('extracting', 'completed');
+
+CREATE TABLE files.extracted_text_doc (
     content_id          CHAR(64) PRIMARY KEY,
-    content             TEXT NOT NULL
+    content             TEXT NOT NULL,
+    start_page          INTEGER NOT NULL CHECK (start_page >= 0)
+    end_page            INTEGER NOT NULL CHECK (end_page >= 0)
+    status              summaries.STATUS NOT NULL,
+    started_at          TIMESTAMPTZ NOT NULL,
+    ended_at            TIMESTAMPTZ,
+    request_count       INTEGER NOT NULL CHECK (request_count >= 0) DEFAULT 0
 );
 
-CREATE TABLE files.file_id_content_id (
+CREATE TABLE files.file_id_extracted_text_id (
     file_id             CHAR(64) UNIQUE NOT NULL,
     content_id          CHAR(64) NOT NULL
-        CONSTRAINT FK_content_id
-        REFERENCES files.content ON DELETE CASCADE ON UPDATE CASCADE,
+        CONSTRAINT FK_extracted_text_id
+        REFERENCES files.extracted_text ON DELETE CASCADE ON UPDATE CASCADE,
     cache               BOOLEAN NOT NULL DEFAULT TRUE,
     file_type           files.FILE_TYPE NOT NULL,
     last_accessed       TIMESTAMPTZ NOT NULL,
-    request_count       INTEGER NOT NULL CHECK (request_count >= 0) DEFAULT 0
+    PRIMARY KEY (file_id, content_id)
 );
 
 /*

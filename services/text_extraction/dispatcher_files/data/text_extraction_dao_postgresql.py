@@ -15,6 +15,8 @@
 #
 # For license information on the libraries used, see LICENSE.
 
+# TODO: pretty much everything
+
 """Summary Data Access Object (DAO) Implementation."""
 
 __version__ = '0.1.8'
@@ -26,15 +28,14 @@ from io import StringIO
 from collections import OrderedDict
 from psycopg2.extras import Json
 from summary_dao_interface import SummaryDAOInterface
-from schemas import Summary
-from summary_status import SummaryStatus
-from supported_models import SupportedModel
-from supported_languages import SupportedLanguage
+from schemas import ExtractedTextDoc
+from extracted_text_status import ExtractedTextStatus
+from supported_file_types import SupportedFileType
 from datetime import datetime
 
 
 # PostgreSQL schema
-SCHEMA = 'summaries'
+SCHEMA = 'files'
 
 
 class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excepts
@@ -56,19 +57,18 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
         self.user = user
         self.password = password
 
-    def get_summary(self, id_: str):
+    def get_extracted_text(self, id_: str):
         """See base class."""
 
-        SQL = f"""SELECT summary_id, content, summary, model_name, params,
-                         status, started_at, ended_at, language_tag, warnings
-                  FROM {SCHEMA}.raw_id_preprocessed_id JOIN {SCHEMA}.summary
-                       ON preprocessed_id = summary_id JOIN {SCHEMA}.source
-                       USING (source_id)
-                  WHERE raw_id = %s;"""
+        SQL = f"""SELECT content_id, content, start_page, end_page,
+                         status, started_at, ended_at
+                  FROM {SCHEMA}.file_id_extracted_text_id
+                       JOIN {SCHEMA}.extracted_text_doc USING (content_id)
+                  WHERE file_id = %s;"""
 
-        SQL_UPDATE_LAST_ACCESSED = f"""UPDATE {SCHEMA}.raw_id_preprocessed_id
+        SQL_UPDATE_LAST_ACCESSED = f"""UPDATE {SCHEMA}.file_id_extracted_text_id
                                        SET last_accessed = %s
-                                       WHERE raw_id = %s;"""
+                                       WHERE file_id = %s;"""
 
         conn = None
         try:
@@ -76,70 +76,51 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
             with conn.cursor() as cur:
                 cur.execute(SQL_UPDATE_LAST_ACCESSED, (datetime.now(), id_))
                 cur.execute(SQL, (id_,))
-                summary_row = cur.fetchone()
+                extracted_text_row = cur.fetchone()
                 conn.commit()
-                if summary_row is not None:
-                    return Summary(
-                        id_=summary_row[0],
-                        source=summary_row[1],
-                        output=summary_row[2],
-                        model=SupportedModel(summary_row[3]),
-                        params=summary_row[4],
-                        status=SummaryStatus(summary_row[5]),
-                        started_at=summary_row[6],
-                        ended_at=summary_row[7],
-                        language=SupportedLanguage(summary_row[8])
-                    ), summary_row[9]  # warnings
-                return (None, None)  # summary doesn't exist
+                if extracted_text_row is not None:
+                    return ExtractedTextDoc(
+                        id_=extracted_text_row[0],
+                        content=extracted_text_row[1],
+                        start_page=extracted_text_row[3],
+                        end_page=extracted_text_row[4],
+                        status=extracted_text_row[5],
+                        started_at=extracted_text_row[6],
+                        ended_at=extracted_text_row[7],
+                    )
+                return None
         except (Exception, psycopg2.DatabaseError) as error:
             self.logger.error(error)
         finally:
             if conn is not None:
                 conn.close()
 
-    def insert_summary(self, summary: Summary, cache: bool, warnings: dict):
+    def insert_extracted_text(self, extracted_text: ExtractedTextDoc,
+                              file_extension: SupportedFileType, cache: bool):
         """See base class."""
 
-        SQL_GET_SOURCE = f"""SELECT source_id
-                             FROM {SCHEMA}.source
-                             WHERE source_id = %s;"""
+        SQL_INSERT_EXTRACTED_TEXT = f"""INSERT INTO {SCHEMA}.extracted_text_doc
+                                        VALUES (%s, %s, %s, %s, %s, %s, %s);"""
 
-        SQL_INSERT_SOURCE = f"""INSERT INTO {SCHEMA}.source
-                                VALUES (%s, %s, %s);"""
-
-        SQL_INSERT_SUMMARY = f"""INSERT INTO {SCHEMA}.summary
-                                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"""
-
-        SQL_INSERT_ID = f"""INSERT INTO {SCHEMA}.raw_id_preprocessed_id
+        SQL_INSERT_ID = f"""INSERT INTO {SCHEMA}.file_id_extracted_text_id
                             VALUES (%s, %s, %s, %s, %s);"""
 
         conn = None
         try:
             conn = self._connect()
             with conn.cursor() as cur:
-                source_id = self._get_unique_key(summary.source)
-                cur.execute(SQL_GET_SOURCE, (source_id,))
-                retrieved_source_id = cur.fetchone()
-                if retrieved_source_id is None:
-                    cur.execute(
-                        SQL_INSERT_SOURCE,
-                        (source_id, summary.source, len(summary.source))
-                    )
-                output_length = (len(summary.output) if summary.output is not None
-                                 else None)
                 cur.execute(
-                    SQL_INSERT_SUMMARY,
-                    (summary.id_, source_id,
-                     summary.output, output_length,
-                     summary.model, Json(summary.params),
-                     summary.status, summary.started_at,
-                     summary.ended_at, summary.language)
+                    SQL_INSERT_EXTRACTED_TEXT,
+                    (extracted_text.id_, extracted_text.content,
+                     extracted_text.start_page, extracted_text.end_page,
+                     extracted_text.status, extracted_text.started_at,
+                     extracted_text.ended_at)
                 )
-                cur.execute(SQL_INSERT_ID, (summary.id_,
-                                            summary.id_,
+                cur.execute(SQL_INSERT_ID, (extracted_text.id_,
+                                            extracted_text.id_,
                                             cache,
-                                            datetime.now(),
-                                            Json(warnings)))
+                                            file_extension.value,
+                                            datetime.now()))
                 conn.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.logger.error(error)
@@ -326,13 +307,13 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
     def update_cache_true(self, id_: str):
         """See base class."""
 
-        SQL = f"""UPDATE {SCHEMA}.raw_id_preprocessed_id
+        SQL = f"""UPDATE {SCHEMA}.file_id_extracted_text_id
                   SET cache = TRUE,
                       last_accessed = %s
-                  WHERE CACHE = FALSE AND (raw_id = %s OR raw_id IN (
-                      SELECT preprocessed_id
-                      FROM {SCHEMA}.raw_id_preprocessed_id
-                      WHERE raw_id = %s
+                  WHERE CACHE = FALSE AND (file_id = %s OR file_id IN (
+                      SELECT content_id
+                      FROM {SCHEMA}.file_id_extracted_text_id
+                      WHERE file_id = %s
                   ));"""
 
         conn = None
@@ -347,15 +328,15 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
             if conn is not None:
                 conn.close()
 
-    def summary_exists(self, id_: str):
+    def extracted_text_exists(self, id_: str):
         """See base class."""
 
-        SQL_SELECT = f"""SELECT raw_id FROM {SCHEMA}.raw_id_preprocessed_id
-                         WHERE raw_id = %s;"""
+        SQL_SELECT = f"""SELECT file_id FROM {SCHEMA}.file_id_extracted_text_id
+                         WHERE file_id = %s;"""
 
-        SQL_UPDATE_LAST_ACCESSED = f"""UPDATE {SCHEMA}.raw_id_preprocessed_id
+        SQL_UPDATE_LAST_ACCESSED = f"""UPDATE {SCHEMA}.file_id_extracted_text_id
                                        SET last_accessed = %s
-                                       WHERE raw_id = %s;"""
+                                       WHERE file_id = %s;"""
 
         conn = None
         try:
@@ -390,13 +371,14 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
             if conn is not None:
                 conn.close()
 
-    def increment_summary_count(self, id_: str):
+    def increment_extracted_text_count(self, id_: str):
         """See base class."""
 
-        SQL = f"""UPDATE {SCHEMA}.summary
+        SQL = f"""UPDATE {SCHEMA}.extracted_text_doc
                   SET request_count = request_count + 1
-                  FROM {SCHEMA}.raw_id_preprocessed_id
-                  WHERE raw_id = %s AND preprocessed_id = summary_id
+                  FROM {SCHEMA}.file_id_extracted_text_id
+                  WHERE file_id = %s AND
+                  {SCHEMA}.extracted_text_doc.content_id = {SCHEMA}.extracted_text_doc.content_id
                   RETURNING request_count;"""
 
         conn = None
@@ -415,37 +397,34 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
     def delete_if_not_cache(self, id_: str):
         """See base class."""
 
-        SQL_DELETE = f"""DELETE FROM {SCHEMA}.raw_id_preprocessed_id
-                         WHERE raw_id = %s AND cache = FALSE
-                         RETURNING preprocessed_id;"""
+        SQL_DELETE = f"""DELETE FROM {SCHEMA}.file_id_extracted_text_id
+                         WHERE file_id = %s AND cache = FALSE
+                         RETURNING content_id;"""
 
-        # Check if the preprocessed id has to be cached
-        SQL_CACHE = f"""SELECT cache FROM {SCHEMA}.raw_id_preprocessed_id
-                        WHERE raw_id = %s;"""
+        # Check if the content id has to be cached
+        SQL_CACHE = f"""SELECT cache FROM {SCHEMA}.file_id_extracted_text_id
+                        WHERE file_id = %s;"""
 
         # Because of ON DELETE CASCADE, this will delete both the
         # source and the summary
-        SQL_DELETE_SUMMARY = f"""DELETE FROM {SCHEMA}.source
-                                 WHERE source_id = (
-                                     SELECT source_id FROM {SCHEMA}.summary
-                                     WHERE summary_id = %s
-                                 );"""
+        SQL_DELETE_EXTRACTED_TEXT = f"""DELETE FROM {SCHEMA}.extracted_text_doc
+                                        WHERE content_id = %s;"""
 
         conn = None
         try:
             conn = self._connect()
             with conn.cursor() as cur:
                 cur.execute(SQL_DELETE, (id_,))
-                preprocessed_id = cur.fetchone()
-                if preprocessed_id is not None:
-                    if id_ == preprocessed_id[0]:  # preprocessed_id is a tuple
+                content_id = cur.fetchone()
+                if content_id is not None:
+                    if id_ == content_id[0]:  # content_id is a tuple
                         # We have already checked that cache was False
-                        cur.execute(SQL_DELETE_SUMMARY, preprocessed_id)
+                        cur.execute(SQL_DELETE_EXTRACTED_TEXT, content_id)
                     else:
-                        cur.execute(SQL_CACHE, preprocessed_id)
+                        cur.execute(SQL_CACHE, content_id)
                         cache = cur.fetchone()
                         if cache is not None and not cache[0]:
-                            cur.execute(SQL_DELETE_SUMMARY, preprocessed_id)
+                            cur.execute(SQL_DELETE_EXTRACTED_TEXT, content_id)
                 conn.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.logger.error(error)

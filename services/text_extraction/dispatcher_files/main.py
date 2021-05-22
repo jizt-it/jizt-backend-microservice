@@ -15,13 +15,14 @@
 #
 # For license information on the libraries used, see LICENSE.
 
-"""Summarization Dispatcher REST API v1."""
+"""Text Extraction Dispatcher REST API v1."""
 
 __version__ = '0.1.10'
 
 import os
 import re
 import argparse
+import filetype
 import logging
 from datetime import datetime
 from werkzeug import serving
@@ -33,11 +34,11 @@ from kafka.kafka_topics import KafkaTopic
 from kafka.kafka_producer import Producer
 from kafka.kafka_consumer import ConsumerLoop
 from kafka.unique_key import get_unique_key
-from data.summary_status import SummaryStatus
-from data.summary_dao_factory import SummaryDAOFactory
-from data.schemas import Summary, PlainTextRequestSchema, ResponseSchema
-from data.supported_models import SupportedModel
-from data.supported_languages import SupportedLanguage
+from data.extracted_text_status import ExtractedTextStatus
+from data.text_extraction_dao_factory import TextExtractionDAOFactory
+from data.schemas import (ExtractedTextDoc, DocTextExtractionRequestSchema,
+                          ResponseSchema)
+from data.supported_file_types import SupportedFileType
 from pathlib import Path
 
 # Flask config
@@ -45,8 +46,9 @@ FLASK_HOST = "0.0.0.0"
 FLASK_PORT = os.environ['FLASK_SERVER_PORT']
 
 # Args for Python script execution
-parser = argparse.ArgumentParser(description='Summarization Dispatcher service. '
-                                             'Default log level is WARNING.')
+parser = argparse.ArgumentParser(description='Text Extraction Dispatcher '
+                                             'service. Default log level is '
+                                             'WARNING.')
 parser.add_argument('-i', '--info', action='store_true',
                     help='turn on Python logging to INFO level')
 parser.add_argument('-d', '--debug', action='store_true',
@@ -62,8 +64,7 @@ class DispatcherService:
           the necessary fields.
         * Publish messages to the proper microservice Kafka topic, in order
           to begin the text processing.
-        * Manage the completed summaries, storing them in a DB for later
-          retrieval.
+        * Manage the extracted texts, storing them in a DB for cache purposes.
     """
 
     def __init__(self, log_level):
@@ -81,7 +82,7 @@ class DispatcherService:
             level=log_level,
             datefmt='%d/%m/%Y %I:%M:%S %p'
         )
-        self.logger = logging.getLogger("Summarization Dispatcher")
+        self.logger = logging.getLogger("Text Extraction Dispatcher")
         # Comment out next line to turn on flask_cors logs
         # logging.getLogger("flask_cors").level = log_level
 
@@ -93,10 +94,9 @@ class DispatcherService:
 
         # Endpoints
         self.api.add_resource(
-            PlainTextSummary,
-            "/v1/summaries/plain-text",
-            "/v1/summaries/plain-text/<summary_id>",
-            endpoint="plain-text-summarization",
+            TextExtraction,
+            "/v1/text-extraction/doc",
+            endpoint="text-extraction",
             resource_class_kwargs={'dispatcher_service': self,
                                    'kafka_producer': self.kafka_producer}
         )
@@ -152,7 +152,7 @@ class DispatcherService:
                 The log level.
 
         Returns:
-            :obj:`SummaryDAOFactory`: an instance to the database.
+            :obj:`TextExtractionDAOFactory`: an instance to the database.
         """
 
         # PostgreSQL connection data
@@ -163,7 +163,7 @@ class DispatcherService:
                    / Path(os.environ['PG_PASSWORD_FILE'])), 'r') as password:
             pg_password = password.readline().rstrip('\n')
 
-        return SummaryDAOFactory(
+        return TextExtractionDAOFactory(
             os.environ['PG_HOST'],
             os.environ['PG_DBNAME'],
             pg_username,
@@ -172,81 +172,86 @@ class DispatcherService:
         )
 
 
-class PlainTextSummary(Resource):
-    """Resource for plain-text requests."""
+class TextExtraction(Resource):
+    """Resource for text extraction requests."""
 
     def __init__(self, **kwargs):
-        self.request_schema = PlainTextRequestSchema()
+        self.request_schema = DocTextExtractionRequestSchema()
         self.ok_response_schema = ResponseSchema()
         self.dispatcher_service = kwargs['dispatcher_service']
         self.kafka_producer = kwargs['kafka_producer']
 
-    def post(self, **kwargs):
+    def post(self):
         """HTTP POST.
 
-        Submit a request. When a client first makes a POST request, a response
-        is given with the summary id. The client must then make periodic GET
-        requests with the specific summary id to check the summary status. Once
-        the summary is completed, the GET request will contain the output text,
-        e.g., the summary.
+        Submit a request for text extraction. When a client first makes a POST
+        request, a response is given with a unique id. The client must then make
+        periodic GET requests with the specific id to check the status of the
+        text extraction status. Once the text extraction is completed, the GET
+        request will contain the extracted text.
 
         Returns:
-            :obj:`dict`: A 202 Accepted response with a JSON body containing the
-            summary id, e.g.,
-            {'summary_id': 73c3de4175449987ef6047f6e0bea91c1036a8599b}.
+            :obj:`dict`: A 202 Accepted response with a JSON body containing a
+            unique id, e.g., {'id_': 73c3de4175449987ef6047f6e0bea91c1036a8599b}.
 
         Raises:
             :class:`http.client.HTTPException`: If the request body
             JSON is not valid.
         """
 
-        if kwargs:
-            error_msg = ("POST does not admit parameters in URL. Parameters "
-                         f"passed: {kwargs}.")
-            abort(400, error=error_msg)  # 400 Bad Request
-
         data = request.json
         # The validation will modify the data (i.e. it already loads it)
         self._validate_post_request_json(data)
 
-        source = data['source']
-        model = SupportedModel(data['model'])
-        params = data['params']
+        file = data['file'].read()  # type(file) -> ``bytes``
+        start_page = data['start_page']  # either ``int`` or ``None``
+        end_page = data['end_page']  # either ``int`` or ``None``
         cache = data.pop('cache')
 
-        message_key = get_unique_key(source, model.value, params)  # summary id
+        file_extension = filetype.guess(file).extension
+        supported_extensions = [f.value for f in SupportedFileType]
+        if file_extension not in supported_extensions:
+            abort(400, errors=f'The file extension {file_extension} is '
+                               'currently not supported. Supported file types: '
+                              f'{supported_extensions}')
+        else:
+            file_extension = SupportedFileType(file_extension)
 
-        if self.dispatcher_service.db.summary_exists(message_key):
-            summary, warnings = self.dispatcher_service.db.get_summary(message_key)
+        message_key = get_unique_key(file, start_page, end_page)  # file id
+
+        if self.dispatcher_service.db.extracted_text_exists(message_key):
+            extracted_text = self.dispatcher_service.db.get_extracted_text(message_key)
             if cache:
                 self.dispatcher_service.db.update_cache_true(message_key)
-            count = self.dispatcher_service.db.increment_summary_count(message_key)
+            count = self.dispatcher_service.db.increment_extracted_text_count(message_key)
 
             self.dispatcher_service.logger.debug(
-                f'Summary already exists: [id] {summary.id_}, [source] '
-                f'{summary.source[:50]}, [output] '
-                f'{summary.output[:50] if summary.output is not None else None}, '
-                f'[model] {summary.model}, [params] {summary.params}, [status] '
-                f'{summary.status}, [started_at] {summary.started_at}, [ended_at] '
-                f'{summary.ended_at}, [language] {summary.language}'
+                f'Extracted text already exists: [id] {extracted_text.id_}, '
+                f'[content] '
+                f'{extracted_text.content[:50] if extracted_text.content is not None else None}, ' 
+                f'[start_page] {extracted_text.start_pagee}, [end_page] '
+                f'{extracted_text.end_page}, [status] {extracted_text.status}, '
+                f'[started_at] {extracted_text.started_at}, [ended_at] '
+                f'{extracted_text.ended_at}'
             )
-            self.dispatcher_service.logger.debug(f"Current summary count: {count}.")
+            self.dispatcher_service.logger.debug(
+                f"Current extracted text count: {count}."
+            )
         else:
-            summary = Summary(
+            extracted_text = ExtractedTextDoc(
                 id_=message_key,
-                source=source,
-                output=None,
-                model=model,
-                params=params,
-                status=SummaryStatus.PREPROCESSING,
+                content=None,
+                start_page=start_page,
+                end_page=end_page,
+                status=ExtractedTextStatus.EXTRACTING,
                 started_at=datetime.now(),
                 ended_at=None,
-                language=SupportedLanguage.ENGLISH
             )
-            warnings = data.pop('warnings', None)
-            self.dispatcher_service.db.insert_summary(summary, cache, warnings)
+            self.dispatcher_service.db.insert_extracted_text(
+                extracted_text, file_extension, cache
+            )
 
-            topic = KafkaTopic.TEXT_PREPROCESSING.value
+            topic = KafkaTopic.TEXT_EXTRACTING_DOC.value
             message_value = self.request_schema.dumps(data)
             self._produce_message(topic,
                                   message_key,
@@ -258,44 +263,42 @@ class PlainTextSummary(Resource):
                 f'"{message_value[:500]} [...]"'
             )
 
-        response = {"summary": summary, "warnings": warnings}
-        response = self.ok_response_schema.dump(response)
+        response = self.ok_response_schema.dump(extracted_text)
         return response, 202  # ACCEPTED
 
-    def get(self, summary_id):
+    def get(self, document_id):
         """HTTP GET.
 
-        Gives a response with the summary status and, in case the summary
-        is completed, the output text, i.e. the summary.
+        Gives a response with the text extraction status and, in case the text
+        extraction is completed, the extracted text itself.
 
         Args:
-            summary_id (:obj:`str`):
-                The id of the requested summary.
+            document_id (:obj:`str`):
+                The id of the requested document.
 
         Returns:
             :obj:`dict`: A ``200 OK`` response with a JSON body containing the
-            summary. For info on the summary fields, see
-            :class:`data.schemas.Summary`.
+            extracted text. For info on the extracted text fields, see
+            :class:`data.schemas.ExtractedTextDoc`.
 
         Raises:
-            :class:`http.client.HTTPException`: If there exists no summary
-            with the specified id.
+            :class:`http.client.HTTPException`: If there exists no extracted
+            text with the specified id.
         """
 
-        summary, warnings = self.dispatcher_service.db.get_summary(summary_id)
-        if summary is None:
-            abort(404, errors=f'Summary "{summary_id}" not found.')  # NOT FOUND
-        # Delete summary if the user requested their summary not to be cached,
+        extracted_text = self.dispatcher_service.db.get_extracted_text(document_id)
+        if extracted_text is None:
+            abort(404, errors=f'Extracted text "{document_id}" not found.')  # NOT FOUND
+        # Delete extracted text if the user requested it not to be cached,
         # i.e., not to be permanently stored in the database.
-        if summary.status == SummaryStatus.COMPLETED.value:
-            self.dispatcher_service.db.delete_if_not_cache(summary_id)
-        # The id of the summary retrieved from the database corresponds to the
-        # preprocessed id. This id might not match the attribute 'summary_id', since
-        # this is the raw id. Therefore, we make sure the returned id matches the
-        # id requested (raw id).
-        summary.id_ = summary_id
-        response = {"summary": summary, "warnings": warnings}
-        response = self.ok_response_schema.dump(response)
+        if extracted_text.status == ExtractedTextStatus.COMPLETED.value:
+            self.dispatcher_service.db.delete_if_not_cache(document_id)
+        # The id of the extracted text retrieved from the database corresponds
+        # to the content id. This id might not match the attribute 'file_id'.
+        # Therefore, we make sure the returned id matches the
+        # id requested (file id, i.e. document id).
+        extracted_text.id_ = document_id
+        response = self.ok_response_schema.dump(extracted_text)
         return response, 200  # OK
 
     def _validate_post_request_json(self, json):
@@ -303,7 +306,7 @@ class PlainTextSummary(Resource):
 
         The JSON will not be valid if it does not contain
         all the mandatory fields defined in the
-        :class:`.schemas.PlainTextRequestSchema` class.
+        :class:`.schemas.DocTextExtractionRequestSchema` class.
 
         Args:
             json (:obj:`dict`):
@@ -394,7 +397,7 @@ class Health(Resource):
 def disable_endpoint_logs():
     """Disable logs for requests to specific endpoints."""
 
-    disabled_endpoints = ('/', '/healthz', '/v1/summaries/plain-text/.+')
+    disabled_endpoints = ('/', '/healthz', '/v1/text-extraction/.+')
 
     parent_log_request = serving.WSGIRequestHandler.log_request
 

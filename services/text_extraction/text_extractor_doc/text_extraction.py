@@ -24,7 +24,7 @@ import base64
 import binascii
 import fitz  # PyMuPDF
 from io import StringIO
-from supported_formats import SupportedFormat as sf
+from supported_file_types import SupportedFileType as sf
 from exceptions import (Base64DecodingError,
                         FormatNotSupportedException,
                         TextExtractionError,
@@ -35,7 +35,13 @@ class TextExtractor:
     """Base class for text extraction."""
 
     @classmethod
-    def get_text(cls, b64file: bytes, extension: str, pages: tuple = None) -> str:
+    def get_text(
+        cls,
+        b64file: bytes,
+        extension: str,
+        start_page: int = None,
+        end_page: int = None
+    ) -> str:
         """Extract the text from a document.
 
         Args:
@@ -43,9 +49,17 @@ class TextExtractor:
                 The file from which to extract the text, encoded in base64.
             extension (:obj:`str`):
                 The extension of the file, without the leading dot, e.g., 'pdf'.
-            pages (:obj:`tuple`):
-                The pages (1-indexed) from which to extract the text, e.g., (1, 40).
-                The bounds are both inclusive.
+            start_page (:obj:`int`), `optional`, defaults to :obj:`None`:
+                The first page (1-indexed) from which to extract the text. If
+                the start page is not specified, the text will be extracted from
+                the first page of the document.
+            end_page (:obj:`int`), `optional`, defaults to :obj:`None`:
+                The last page (1-indexed) until which to extract the text. If
+                :param:`start_page` and :param:`end_page` are the same, only the
+                text from that page is extracted. If the end page is not
+                specified, the text will be extracted until the last page of the
+                document.
+
 
         Returns:
             :obj:`str`: the extracted text.
@@ -59,8 +73,10 @@ class TextExtractor:
             :obj:`TextExtractionError`: see child classes.
         """
 
-        if pages[0] < 1 or pages[1] < 1 or pages[0] > pages[1]:
-            raise PageOutOfRangeError(pages)
+        start_page = start_page if start_page is not None else 1
+        end_page = end_page if end_page is not None else len(doc)
+        if start_page < 1 or end_page < 1 or start_page > end_page:
+            raise PageOutOfRangeError(start_page, end_page)
 
         try:
             decoded_file = base64.b64decode(b64file)
@@ -72,11 +88,12 @@ class TextExtractor:
         except ValueError:
             raise FormatNotSupportedException(extension)
 
-        # if supported_format in (sf.PDF, sf.XPS, sf.OXPS,
+        # if supported_file_type in (sf.PDF, sf.XPS, sf.OXPS,
         #                         sf.CBS, sf.FB2, sf.EPUB):
-        return MuPDFTextExtractor.get_text(decoded_file, supported_format.value, pages)
+        return MuPDFTextExtractor.get_text(decoded_file, supported_format.value,
+                                           start_page, end_page)
 
-        # elif supported_format in `future supported formats`
+        # elif supported_file_type in `future supported file types`
 
 
 class MuPDFTextExtractor(TextExtractor):
@@ -96,7 +113,13 @@ class MuPDFTextExtractor(TextExtractor):
     """
 
     @classmethod
-    def get_text(cls, stream: bytes, extension: str, pages: tuple = None) -> str:
+    def get_text(
+        cls,
+        stream: bytes,
+        extension: str,
+        start_page: int = None,
+        end_page: int = None
+    ) -> str:
         """Extract the text from a document.
 
         Args:
@@ -104,9 +127,16 @@ class MuPDFTextExtractor(TextExtractor):
                 The file in memory from which to extract the text.
             extension (:obj:`str`):
                 The extension of the file, without the leading dot, e.g., 'pdf'.
-            pages (:obj:`tuple`):
-                The pages (1-indexed) from which to extract the text, e.g., (1, 40).
-                The bounds are both inclusive.
+            start_page (:obj:`int`), `optional`, defaults to :obj:`None`:
+                The first page (1-indexed) from which to extract the text. If
+                the start page is not specified, the text will be extracted from
+                the first page of the document.
+            end_page (:obj:`int`), `optional`, defaults to :obj:`None`:
+                The last page (1-indexed) until which to extract the text. If
+                :param:`start_page` and :param:`end_page` are the same, only the
+                text from that page is extracted. If the end page is not
+                specified, the text will be extracted until the last page of the
+                document.
 
         Returns:
             :obj:`str`: the extracted text.
@@ -123,12 +153,13 @@ class MuPDFTextExtractor(TextExtractor):
 
         try:
             with fitz.open(stream=stream, filetype=extension) as doc:
-                pages = pages if pages is not None else (0, len(doc))
+                start_page = start_page if start_page is not None else 1
+                end_page = end_page if end_page is not None else len(doc)
                 text.write(' '.join([word_info[4]
-                                     for i in range(pages[0], pages[1]+1)
+                                     for i in range(start_page, end_page+1)
                                      for word_info in doc[i-1].get_text("words")]))
         except IndexError:
-            raise PageOutOfRangeError(pages)
+            raise PageOutOfRangeError(start_page, end_page)
         except RuntimeError:
             raise TextExtractionError()
 

@@ -1,0 +1,62 @@
+{{- include "jiztlibchart.deployment" (list . "jizt.summarization-dispatcher-deployment") -}}
+{{- define "jizt.summarization-dispatcher-deployment" -}}
+metadata:
+  name: {{ .Values.summarizationDispatcher.name }}-deployment
+  labels:
+    microservice: {{ .Values.summarizationDispatcher.name }}
+spec:
+  selector:
+    matchLabels:
+      microservice: {{ .Values.summarizationDispatcher.name }}
+  template:
+    metadata:
+      labels:
+        microservice: {{ .Values.summarizationDispatcher.name }}
+    spec:
+      containers:
+      - name: {{ .Values.summarizationDispatcher.name }}
+        image: {{ .Values.summarizationDispatcher.image }}
+        args: ["-d"]  # uncomment for debug mode
+        env:
+        - name: FLASK_SERVER_PORT
+          value: "{{ .Values.summarizationDispatcher.ports.container }}"
+        - name: PG_HOST
+          value: {{ .Values.summarizationPostgres.host }}
+        - name: PG_DBNAME
+          value: {{ .Values.summarizationPostgres.dbName }}
+        - name: PG_SECRET_PATH
+          value: {{ .Values.summarizationPostgres.secret.mountPath }}
+        - name: PG_USERNAME_FILE
+          value: {{ .Values.summarizationPostgres.secret.usernameFile }}
+        - name: PG_PASSWORD_FILE
+          value: {{ .Values.summarizationPostgres.secret.passwordFile }}
+        volumeMounts:
+        - name: {{ .Values.summarizationPostgres.secret.volumeName }}
+          mountPath: {{ .Values.summarizationPostgres.secret.mountPath }}
+          readOnly: true
+        ports:
+        - containerPort: {{ .Values.summarizationDispatcher.ports.container }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: {{ .Values.summarizationDispatcher.ports.container }}
+          initialDelaySeconds: 10
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: {{ .Values.summarizationDispatcher.ports.container }}
+          initialDelaySeconds: 10
+          periodSeconds: 15
+        resources:
+          requests:
+            memory: {{ .Values.summarizationDispatcher.requests.memory }}
+            cpu: {{ .Values.summarizationDispatcher.requests.cpu }}
+          limits:
+            memory: {{ .Values.summarizationDispatcher.limits.memory }}
+            cpu: {{ .Values.summarizationDispatcher.limits.cpu }}
+      volumes:
+      - name: {{ .Values.summarizationPostgres.secret.volumeName }}
+        secret:
+          secretName: {{ .Values.summarizationPostgres.secret.secretName }}
+{{- end -}}

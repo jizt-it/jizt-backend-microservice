@@ -1,0 +1,13 @@
+{{- include "jiztlibchart.service" (list . "jizt.summarization-dispatcher-service") -}}
+{{- define "jizt.summarization-dispatcher-service" -}}
+metadata:
+  name: {{ .Values.summarizationDispatcher.name }}-service
+  labels:
+    microservice: {{ .Values.summarizationDispatcher.name }}
+spec:
+  selector:
+    microservice: {{ .Values.summarizationDispatcher.name }}
+  ports:
+  - port: {{ .Values.summarizationDispatcher.ports.svc }}
+    targetPort: {{ .Values.summarizationDispatcher.ports.container }}
+{{- end -}}

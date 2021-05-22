@@ -30,13 +30,17 @@ autoscaling:
 # Microservices related configuration #
 #######################################
 
-# Configuration for the Dispatcher microservice
-dispatcher:
-  name: "dispatcher"
+###############################
+# Summarization Microservices #
+###############################
+
+# Configuration for the Summarization Dispatcher microservice
+summarizationDispatcher:
+  name: "summarization-dispatcher"
   ports:
     svc: 5000
     container: 5000
-  image: gcr.io/jizt-project/jizt/dispatcher:0.1.5
+  image: gcr.io/jizt-project/jizt/summarization-dispatcher:0.1.5
   requests:
     memory: 32Mi
     cpu: 20m
@@ -46,11 +50,11 @@ dispatcher:
 
 # Configuration for ConfigMap/Secret containing
 # PostgreSQL connection details
-postgres:
+summarizationPostgres:
   host: "db-cluster.jizt-db"  # clusterName.namespace
-  dbName: "jizt"
+  dbName: "summarization"
   secret:
-    secretName: pg-dispatcher-summarization
+    secretName: pg-summarization-dispatcher
     volumeName: postgres-user
     mountPath: "/etc/postgres"
     usernameFile: "username"
@@ -135,6 +139,35 @@ textPostprocessor:
     memory: 600Mi
     cpu: 610m
 
+###############################
+# Summarization Microservices #
+###############################
+
+# Configuration for the Summarization Dispatcher microservice
+textExtractionDispatcher:
+  name: "text-extraction-dispatcher"
+  ports:
+    svc: 5000
+    container: 5000
+  image: gcr.io/jizt-project/jizt/text-extraction-dispatcher:0.1.5
+  requests:
+    memory: 32Mi
+    cpu: 20m
+  limits:
+    memory: 36Mi
+    cpu: 30m
+
+# Configuration for ConfigMap/Secret containing
+# PostgreSQL connection details
+textExtractionPostgres:
+  host: "db-cluster.jizt-db"  # clusterName.namespace
+  dbName: "text-extraction"
+  secret:
+    secretName: pg-text-extraction-dispatcher
+    volumeName: postgres-user
+    mountPath: "/etc/postgres"
+    usernameFile: "username"
+    passwordFile: "password"
 
 #################################
 # Volumes related configuration #

@@ -67,21 +67,28 @@ class PageOutOfRangeError(IndexError):
     """Error raised when the specified page is out of the document page range.
 
     Attributes:
-        pages (obj:`tuple`):
-            The pages that originated the error.
+        start_page (obj:`int`):
+            The start page that originated the error.
+        end_page (obj:`int`):
+            The end page that originated the error.
         message (obj:`str`):
             Information about the error.
     """
 
-    def __init__(self, pages: tuple, message: str = None):
-        self._pages = pages
-        self._message = (f"pages {pages} out of range"
+    def __init__(self, start_page: int, end_page: int, message: str = None):
+        self._start_page = start_page
+        self._end_page = end_page
+        self._message = (f"pages ({start_page}, {end_page}) out of range"
                          if message is None else message)
         super().__init__(self._message)
 
     @property
-    def pages(self):
-        return self._pages
+    def start_page(self):
+        return self._start_page
+
+    @property
+    def end_page(self):
+        return self._end_page
 
     @property
     def message(self):

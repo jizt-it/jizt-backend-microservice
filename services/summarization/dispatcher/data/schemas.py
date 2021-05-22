@@ -41,7 +41,7 @@ class Summary():
       model with wich the summary was generated.
     * params (:obj:`dict`): the parameters with which the summary was
       generated.
-    * status (:obj:`data.summary_status.SummaryStatus.COMPLETED`):
+    * status (:obj:`data.summary_status.SummaryStatus`):
       the current status of the summary.
     * started_at (:obj:`datetime.datetime`): the time when the summary
       was first requested.
@@ -164,7 +164,7 @@ class ResponseSchema(Schema):
     Some of the fields might not be available during the generation of
     the summary, e.g. ``output`` or ``ended_at``. Once the summary is
     ready, the ``status`` will change to ``completed``
-    and the missing fields will be available then.
+    and the missing fields will be available.
 
     Fields:
         started_at (:obj:`datetime.datetime`):
@@ -199,7 +199,7 @@ class ResponseSchema(Schema):
     def build_reponse(self, data: dict, **kwargs):
         """Build a response with the :obj:`Summary` and warnings (if any).
 
-        The data must have the following scheme: ``{"summary": summary_object,
+        The data must have the following schema: ``{"summary": summary_object,
         "warnings": warnings}``.
 
         This method is executed when calling :meth:`Schema.dump`. Since a

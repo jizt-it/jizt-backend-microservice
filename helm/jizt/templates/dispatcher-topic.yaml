@@ -1,5 +1,0 @@
-{{- include "jiztlibchart.kafka-topic" (list . "jizt.dispatcher-topic") -}}
-{{- define "jizt.dispatcher-topic" -}}
-metadata:
-  name: dispatcher-topic
-{{- end -}}

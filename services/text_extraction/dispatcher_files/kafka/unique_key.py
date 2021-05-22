@@ -22,25 +22,21 @@ __version__ = '0.1.0'
 import hashlib
 
 
-def get_unique_key(source: str, model: str, params: dict) -> str:
-    """Get a unique key for a message.
+def get_unique_key(file: bytes, start_page: int, end_page: int) -> str:
+    """Get a unique key for a file.
 
-    This method hashes the string formed by concatenating the
-    :attr:`source`, :attr:`model` and :attr:`param` attributes.
-    SHA-256 algorithm is used.
+    This method hashes the file bytes. SHA-256 algorithm is used.
 
     Args:
-        source (:obj:`str`):
-            ``source`` attribute in the JSON body of the request.
-        model (:obj:`str`):
-            ``model`` attribute in the JSON body of the request.
-        params (:obj:`params`):
-            ``params`` attribute in the JSON body of the request.
+        file (:obj:`bytes`):
+            The file to get the unique key for.
+        start_page (:obj:`int`):
+            The first page (1-indexed) from which to extract the text. 
+        end_page (:obj:`int`):
+            The last page (1-indexed) until which to extract the text. 
 
     Returns:
         :obj:`str`: The unique, SHA-256 encrypted key.
     """
 
-    return hashlib.sha256(
-        ("".join([source, model, str(params)])).encode()
-    ).hexdigest()
+    return hashlib.sha256(f"{file}{start_page}{end_page}".encode()).hexdigest()

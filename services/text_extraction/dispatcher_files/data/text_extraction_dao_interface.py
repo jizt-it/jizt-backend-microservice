@@ -15,46 +15,45 @@
 #
 # For license information on the libraries used, see LICENSE.
 
-"""Summary Data Access Object (DAO) Interface."""
+# TODO: everything
+
+"""TextExtraction Data Access Object (DAO) Interface."""
 
 __version__ = '0.1.3'
 
 from datetime import datetime
-from schemas import Summary
-from summary_status import SummaryStatus
-from supported_models import SupportedModel
-from supported_languages import SupportedLanguage
-from warning_messages import WarningMessage
+from schemas import ExtractedTextDoc
+from extracted_text_status import ExtractedTextStatus
+from supported_file_types import SupportedFileType
 
 
-class SummaryDAOInterface:
-    """DAO Interface for access to :obj:`Summary` objects."""
+class TextExtractionDAOInterface:
+    """DAO Interface for access to :obj:`ExtractedText` objects."""
 
-    def get_summary(self, id_: str):
-        """Retrieve a summary from the database.
+    def get_extracted_text(self, id_: str):
+        """Retrieve an extracted text from the database.
 
         Args:
             id_ (:obj:`str`):
-                The summary id.
+                The extracted text id.
 
         Returns:
-            :obj:tuple(:obj:`Summary`, :obj:`dict`): A tuple with the summary with the
-            specified id and its associated warnings (if there are no warnings then
-            they will be :obj:`None`) or a tuple containing two :obj:`None`s if there
-            is not any summary with the specified id.
+            Union[:obj:`ExtractedText`, :obj:`None`]: the extracted text or
+            :obj:`None` if it doesn't exist in the database.
         """
 
-    def insert_summary(self, summary: Summary, cache: bool, warnings: dict):
-        """Insert a new summary to the database.
+    def insert_extracted_text(self, extracted_text: ExtractedTextDoc,
+                              file_extension: SupportedFileType, cache: bool):
+        """Insert a new extracte text to the database.
 
         Args:
-            summary (:obj:`Summary`):
-                The summary to be saved.
+            extracted_text (:obj:`ExtractedTextDoc`):
+                The extracted text to be saved.
+            file_extension (:obj:`SupportedFileType`):
+                The file type of the document, e.g., ``SuportedFileType.PDF``.
             cache (:obj:`bool`):
-                Whether the summary must be cached, i.e., permanently stored in the
-                database.
-            warnings (:obj:`dict`):
-                The warnings derived from the user request.
+                Whether the extracted text must be cached, i.e., permanently
+                stored in the database.
         """
 
     def delete_summary(self, id_: str, delete_source: bool):
@@ -122,32 +121,33 @@ class SummaryDAOInterface:
         """
 
     def update_cache_true(self, id_: str):
-        """Start caching a summary.
+        """Start caching an extracted text.
 
-        If a user requests their summary not to be cached, the summary's cache
-        value will be set to :obj:`False`. However, if later on another user
-        requests the same exact summary to be cached, the cache value will be
-        set to :obj:`True`.
+        If a user requests the extracted text from their files not to be cached,
+        the extracted text's cache value will be set to :obj:`False`. However,
+        if later on another user requests the same exact extracted text to be
+        cached, the cache value will be set to :obj:`True`.
 
-        The oppsite is not possible, i.e., if a user requests their summary to
-        be cached, and then another user requests the same exact summary not to
-        be cached, the cache value will still be :obj:`True`, since we need to
-        keep the summary for the user that did request the caching.
+        The oppsite is not possible, i.e., if a user requests the extracted
+        text to be cached, and then another user requests the same exact summary
+        not to be cached, the cache value will still be :obj:`True`, since we
+        need to keep the extracted text for the user that did request the
+        caching.
 
         Args:
             id_ (:obj:`str`):
-                The raw id (not to be confused with the preprocessed id).
+                The file id (not to be confused with the content id).
         """
 
-    def summary_exists(self, id_: str):
-        """Check whether a summary already exists in the DB.
+    def extracted_text_exists(self, id_: str):
+        """Check whether an extracted text already exists in the DB.
 
         Args:
             id_ (:obj:`str`):
-                The summary id.
+                The extracted text id.
 
         Returns:
-            :obj:`bool`: Whether the summary exists or not.
+            :obj:`bool`: Whether the extracted text exists or not.
         """
 
     def source_exists(self, source: str):
@@ -161,36 +161,40 @@ class SummaryDAOInterface:
             :obj:`bool`: Whether the source exists or not.
         """
 
-    def increment_summary_count(self, id_: str):
-        """Increments the summary count, i.e., the times a summary has been requested.
+    def increment_extracted_text_count(self, id_: str):
+        """Increments the extracted text count.
+
+        This count represent the number of times the same text has been
+        extracted from different files.
 
         Args:
             id_ (:obj:`str`):
-                The summary id.
+                The content id.
 
         Returns:
-            :obj:`int`: the summary count.
+            :obj:`int`: the extracted text count.
         """
 
     def delete_if_not_cache(self, id_: str):
-        """Check if a summary should be cached and if not delete it.
+        """Check if an extracted text should be cached and if not delete it.
 
-        When requesting a summary, clients can request not to cache their summary.
-        This is useful when the user's text contains sensitive data, or when they
-        simply do not want their text to be permanently stored in the database.
+        When requesting an extracted text, clients can request not to cache it.
+        This is useful when the user's text contains sensitive data, or when
+        they simply do not want their text to be permanently stored in the
+        database.
 
         Args:
             id_ (:obj:`str`):
-                The raw id (not to be confused with the preprocessed id).
+                The file id (not to be confused with the content id).
         """
 
     def cleanup_cache(self, older_than_seconds: int):
-        """Delete summaries with cache set to :obj:`False` with a certain age in seconds.
+        """Delete summaries with cache set to ``False`` with a certain age in seconds.
 
         Args:
             older_than_seconds (:obj:`int`):
                 Maximum age in seconds of that completed summaries with cache set to
-                :obj:`False` can have not to be deleted, i.e., completed summaries with
-                cache set to :obj:`False`and requested before :param:`older_than_seconds`
+                ``False`` can have not to be deleted, i.e., completed summaries with
+                cache set to ``False``and requested before ``older_than_seconds``
                 seconds will be deleted when calling this method.
         """
