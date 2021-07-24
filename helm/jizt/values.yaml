@@ -36,7 +36,7 @@ dispatcher:
   ports:
     svc: 5000
     container: 5000
-  image: gcr.io/jizt-project/jizt/dispatcher:0.1.4
+  image: gcr.io/jizt-project/jizt/dispatcher:0.1.4rc10
   requests:
     memory: 32Mi
     cpu: 20m
