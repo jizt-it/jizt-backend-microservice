@@ -2,7 +2,7 @@
 
 STRIMZI_RELEASE_NAME="strimzi"
 STRIMZI_NAMESPACE="kafka"
-STRIMZI_VERSION="0.20.1"
+STRIMZI_VERSION="0.24.0"
 JIZT_NAMESPACE="default"  # must match JIZT_NAMESPACE in _instal_jizt,sh
 
 echo -e "\n> Installing Strimzi operator..."
@@ -24,5 +24,6 @@ cat << EOF | helm install $STRIMZI_RELEASE_NAME strimzi/strimzi-kafka-operator \
 "$@" \
 -f -
     watchNamespaces: ["$JIZT_NAMESPACE"]
-    imageRepositoryOverride: "gcr.io/jizt-308512"
+    imageRegistryOverride: "gcr.io"
+    imageRepositoryOverride: "jizt-project/strimzi"
 EOF

@@ -36,7 +36,7 @@ dispatcher:
   ports:
     svc: 5000
     container: 5000
-  image: gcr.io/jizt-308512/jizt/dispatcher:0.1.4
+  image: gcr.io/jizt-project/jizt/dispatcher:0.1.4
   requests:
     memory: 32Mi
     cpu: 20m
@@ -50,7 +50,7 @@ postgres:
   host: "db-cluster.jizt-db"  # clusterName.namespace
   dbName: "jizt"
   secret:
-    secretName: pg-dispatcher
+    secretName: pg-dispatcher-summarization
     volumeName: postgres-user
     mountPath: "/etc/postgres"
     usernameFile: "username"
@@ -62,7 +62,7 @@ textPreprocessor:
   ports:
     svc: 5000
     container: 5000
-  image: gcr.io/jizt-308512/jizt/text-preprocessor:0.0.16
+  image: gcr.io/jizt-project/jizt/text-preprocessor:0.0.16
   requests:
     memory: 40Mi
     cpu: 13m
@@ -76,7 +76,7 @@ t5LargeTextEncoder:
   ports:
     svc: 5000
     container: 5000
-  image: gcr.io/jizt-308512/jizt/t5-large-text-encoder:0.0.25
+  image: gcr.io/jizt-project/jizt/t5-large-text-encoder:0.0.25
   volumeMounts:
     modelsMountPath: "/home/text_encoder/models"
     tokenizerPath: "t5-small/tokenizer"
@@ -93,7 +93,7 @@ t5LargeTextSummarizer:
   ports:
     svc: 5000
     container: 5000
-  image: gcr.io/jizt-308512/jizt/t5-large-text-summarizer:0.0.28
+  image: gcr.io/jizt-project/jizt/t5-large-text-summarizer:0.0.28
   volumeMounts:
     modelsMountPath: "/home/text_summarizer/models"
     tokenizerPath: "t5-small/tokenizer"
@@ -127,7 +127,7 @@ textPostprocessor:
   ports:
     svc: 5000
     container: 5000
-  image: gcr.io/jizt-308512/jizt/text-postprocessor:0.0.22
+  image: gcr.io/jizt-project/jizt/text-postprocessor:0.0.22
   requests:
     memory: 480Mi
     cpu: 3.6m
@@ -171,7 +171,7 @@ modelsPV:
 kafka:
   name: "jizt-cluster"
   namespace: "default"  # not to be confused with strimzi-operator namespace
-  version: 2.6.0
+  version: 2.8.0
   replicas: 1
   resources:
     memoryRequests: 1Gi

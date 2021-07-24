@@ -1,3 +1,6 @@
+# https://raw.githubusercontent.com/CrunchyData/postgres-operator/v4.7.0/installers/kubectl/postgres-operator.yml
+# TODO: check versions.
+
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -60,6 +63,7 @@ rules:
       - extensions
     resources:
       - deployments
+      - replicasets
     verbs:
       - get
       - list
@@ -133,20 +137,23 @@ data:
     backrest_aws_s3_secret: ""
     backrest_aws_s3_uri_style: ""
     backrest_aws_s3_verify_tls: "true"
+    backrest_gcs_bucket: ""
+    backrest_gcs_endpoint: ""
+    backrest_gcs_key_type: ""
     backrest_port: "2022"
     badger: "false"
-    ccp_image_prefix: "gcr.io/jizt-308512/crunchydata"
+    ccp_image_prefix: "gcr.io/jizt-project/crunchydata"  # TODO: set image
     ccp_image_pull_secret: ""
     ccp_image_pull_secret_manifest: ""
-    ccp_image_tag: "centos8-13.2-4.6.1"
+    ccp_image_tag: "centos8-13.3-4.7.0"
     create_rbac: "true"
     crunchy_debug: "false"
-    db_name: "jizt-db"
+    db_name: "jizt-db"  # TODO: set
     db_password_age_days: "0"
     db_password_length: ""  # TODO: set length
     db_port: "5432"
     db_replicas: "0"
-    db_user: ""  # TODO: set db user
+    db_user: "dmlls"  # TODO: set
     default_instance_memory: "128Mi"
     default_pgbackrest_memory: "48Mi"
     default_pgbouncer_memory: "24Mi"
@@ -158,27 +165,27 @@ data:
     reconcile_rbac: "true"
     exporterport: "9187"
     metrics: "false"
-    namespace: "jizt-db"
+    namespace: "jizt-db"  # TODO: set
     namespace_mode: "dynamic"
     pgbadgerport: "10000"
     pgo_add_os_ca_store: "false"
     pgo_admin_password: ""  # TODO: set password
     pgo_admin_perms: "*"
     pgo_admin_role_name: "pgoadmin"
-    pgo_admin_username: "admin"
+    pgo_admin_username: ""  # TODO: set admin username
     pgo_apiserver_port: "8443"
     pgo_apiserver_url: "https://postgres-operator"
     pgo_client_cert_secret: "pgo.tls"
     pgo_client_container_install: "false"
     pgo_client_install: "true"
-    pgo_client_version: "4.6.1"
+    pgo_client_version: "4.7.0"
     pgo_cluster_admin: "false"
     pgo_disable_eventing: "false"
     pgo_disable_tls: "false"
-    pgo_image_prefix: "gcr.io/jizt-308512/crunchydata"
+    pgo_image_prefix: "gcr.io/jizt-project/crunchydata"  # TODO: set image
     pgo_image_pull_secret: ""
     pgo_image_pull_secret_manifest: ""
-    pgo_image_tag: "centos8-4.6.1"
+    pgo_image_tag: "centos8-4.7.0"
     pgo_installation_name: "devtest"
     pgo_noauth_routes: ""
     pgo_operator_namespace: "pgo"
@@ -194,6 +201,7 @@ data:
     backup_storage: "default"
     primary_storage: "default"
     replica_storage: "default"
+    pgadmin_storage: "default"
     wal_storage: ""
     storage1_name: "default"
     storage1_access_mode: "ReadWriteOnce"
@@ -268,7 +276,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: pgo-deploy
-          image: gcr.io/jizt-308512/crunchydata/pgo-deployer:centos8-4.6.1
+          image: gcr.io/jizt-project/crunchydata/pgo-deployer:centos8-4.7.0  # TODO: set image
           imagePullPolicy: IfNotPresent
           env:
             - name: DEPLOY_ACTION
