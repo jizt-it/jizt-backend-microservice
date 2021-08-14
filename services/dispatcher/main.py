@@ -183,7 +183,7 @@ class PlainTextSummary(Resource):
         self.dispatcher_service = kwargs['dispatcher_service']
         self.kafka_producer = kwargs['kafka_producer']
 
-    def post(self):
+    def post(self, **kwargs):
         """HTTP POST.
 
         Submit a request. When a client first makes a POST request, a response
@@ -199,6 +199,11 @@ class PlainTextSummary(Resource):
             :class:`http.client.HTTPException`: If the request body
             JSON is not valid.
         """
+
+        if kwargs:
+            error_msg = ("POST does not admit parameters in URL. Parameters "
+                         f"passed: {kwargs}.")
+            abort(400, error=error_msg)  # 400 Bad Request
 
         data = request.json
         # The validation will modify the data (i.e. it already loads it)
