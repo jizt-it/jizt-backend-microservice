@@ -60,15 +60,14 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
     def get_extracted_text(self, id_: str):
         """See base class."""
 
-        SQL = f"""SELECT content_id, content, start_page, end_page,
-                         status, started_at, ended_at
-                  FROM {SCHEMA}.file_id_extracted_text_id
-                       JOIN {SCHEMA}.extracted_text_doc USING (content_id)
-                  WHERE file_id = %s;"""
+        SQL = f"""SELECT id, content, status, file_type, start_page, end_page,
+                         started_at, ended_at, errors
+                  FROM {SCHEMA}.extracted_text
+                  WHERE id = %s;"""
 
-        SQL_UPDATE_LAST_ACCESSED = f"""UPDATE {SCHEMA}.file_id_extracted_text_id
+        SQL_UPDATE_LAST_ACCESSED = f"""UPDATE {SCHEMA}.extracted_text
                                        SET last_accessed = %s
-                                       WHERE file_id = %s;"""
+                                       WHERE id = %s;"""
 
         conn = None
         try:
@@ -82,11 +81,13 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
                     return DocExtractedText(
                         id_=extracted_text_row[0],
                         content=extracted_text_row[1],
-                        start_page=extracted_text_row[3],
-                        end_page=extracted_text_row[4],
-                        status=extracted_text_row[5],
+                        status=extracted_text_row[2],
+                        file_type=extracted_text_row[3],
+                        start_page=extracted_text_row[4],
+                        end_page=extracted_text_row[5],
                         started_at=extracted_text_row[6],
                         ended_at=extracted_text_row[7],
+                        errors=extracted_text_row[8]
                     )
                 return None
         except (Exception, psycopg2.DatabaseError) as error:
@@ -95,15 +96,12 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
             if conn is not None:
                 conn.close()
 
-    def insert_extracted_text(self, extracted_text: DocExtractedText,
-                              file_extension: SupportedFileType, cache: bool):
+    def insert_extracted_text(self, extracted_text: DocExtractedText):
         """See base class."""
 
-        SQL_INSERT_EXTRACTED_TEXT = f"""INSERT INTO {SCHEMA}.extracted_text_doc
-                                        VALUES (%s, %s, %s, %s, %s, %s, %s);"""
-
-        SQL_INSERT_ID = f"""INSERT INTO {SCHEMA}.file_id_extracted_text_id
-                            VALUES (%s, %s, %s, %s, %s);"""
+        SQL_INSERT_EXTRACTED_TEXT = f"""INSERT INTO {SCHEMA}.extracted_text
+                                        VALUES (%s, %s, %s, %s, %s, %s,
+                                                %s, %s, %s, %s);"""
 
         conn = None
         try:
@@ -112,15 +110,11 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
                 cur.execute(
                     SQL_INSERT_EXTRACTED_TEXT,
                     (extracted_text.id_, extracted_text.content,
+                     extracted_text.status, extracted_text.file_type,
                      extracted_text.start_page, extracted_text.end_page,
-                     extracted_text.status, extracted_text.started_at,
-                     extracted_text.ended_at)
+                     extracted_text.started_at, extracted_text.ended_at,
+                     datetime.now(), extracted_text.errors)
                 )
-                cur.execute(SQL_INSERT_ID, (extracted_text.id_,
-                                            extracted_text.id_,
-                                            cache,
-                                            file_extension.value,
-                                            datetime.now()))
                 conn.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.logger.error(error)
@@ -304,39 +298,15 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
             if conn is not None:
                 conn.close()
 
-    def update_cache_true(self, id_: str):
-        """See base class."""
-
-        SQL = f"""UPDATE {SCHEMA}.file_id_extracted_text_id
-                  SET cache = TRUE,
-                      last_accessed = %s
-                  WHERE CACHE = FALSE AND (file_id = %s OR file_id IN (
-                      SELECT content_id
-                      FROM {SCHEMA}.file_id_extracted_text_id
-                      WHERE file_id = %s
-                  ));"""
-
-        conn = None
-        try:
-            conn = self._connect()
-            with conn.cursor() as cur:
-                cur.execute(SQL, (datetime.now(), id_, id_))
-                conn.commit()
-        except (Exception, psycopg2.DatabaseError) as error:
-            self.logger.error(error)
-        finally:
-            if conn is not None:
-                conn.close()
-
     def extracted_text_exists(self, id_: str):
         """See base class."""
 
-        SQL_SELECT = f"""SELECT file_id FROM {SCHEMA}.file_id_extracted_text_id
-                         WHERE file_id = %s;"""
+        SQL_SELECT = f"""SELECT id FROM {SCHEMA}.extracted_text
+                         WHERE id = %s;"""
 
-        SQL_UPDATE_LAST_ACCESSED = f"""UPDATE {SCHEMA}.file_id_extracted_text_id
+        SQL_UPDATE_LAST_ACCESSED = f"""UPDATE {SCHEMA}.extracted_text
                                        SET last_accessed = %s
-                                       WHERE file_id = %s;"""
+                                       WHERE id = %s;"""
 
         conn = None
         try:

@@ -37,7 +37,7 @@ from kafka.unique_key import get_unique_key
 from data.extracted_text_status import ExtractedTextStatus
 from data.text_extraction_dao_factory import TextExtractionDAOFactory
 from data.schemas import (DocExtractedText, DocTextExtractionRequestSchema,
-                          ResponseSchema)
+                          DocResponseSchema)
 from data.supported_file_types import SupportedFileType
 from pathlib import Path
 
@@ -177,7 +177,8 @@ class TextExtraction(Resource):
 
     def __init__(self, **kwargs):
         self.request_schema = DocTextExtractionRequestSchema()
-        self.ok_response_schema = ResponseSchema()
+        self.doc_produced_msg_schema = DocTextExtractionRequestSchema()
+        self.ok_response_schema = DocResponseSchema()
         self.dispatcher_service = kwargs['dispatcher_service']
         self.kafka_producer = kwargs['kafka_producer']
 
@@ -199,14 +200,18 @@ class TextExtraction(Resource):
             JSON is not valid.
         """
 
+        # Check if the post request has the file part
+        if 'file' not in request.files:
+            abort(400, errors=f'No file was sent')
+
         data = request.json
         # The validation will modify the data (i.e. it already loads it)
         self._validate_post_request_json(data)
 
-        file = data['file'].read()  # type(file) -> ``bytes``
+        file = request.files['file'].read()  # type(file) -> ``bytes``
+        data["file"] = file
         start_page = data['start_page']  # either ``int`` or ``None``
         end_page = data['end_page']  # either ``int`` or ``None``
-        cache = data.pop('cache')
 
         file_extension = filetype.guess(file).extension
         supported_extensions = [f.value for f in SupportedFileType]
@@ -217,46 +222,40 @@ class TextExtraction(Resource):
         else:
             file_extension = SupportedFileType(file_extension)
 
-        message_key = get_unique_key(file, start_page, end_page)  # file id
+        message_key = get_unique_key(file, start_page, end_page)
 
-        extracted_text = (self.dispatcher_service.db.get_extracted_text(message_key)
-                          if self.dispatcher_service.db.extracted_text_exists(message_key)
-                          else None)
+        # ``None`` if it does not exist
+        extracted_text = self.dispatcher_service.db.get_extracted_text(message_key)
 
         if (extracted_text is not None
                 and extracted_text.status != ExtractedTextStatus.FAILED.value):
-            if cache:
-                self.dispatcher_service.db.update_cache_true(message_key)
-            count = self.dispatcher_service.db.increment_extracted_text_count(message_key)
-
             self.dispatcher_service.logger.debug(
                 f'Extracted text already exists: [id] {extracted_text.id_}, '
                 f'[content] '
                 f'{extracted_text.content[:50] if extracted_text.content is not None else None}, ' 
-                f'[start_page] {extracted_text.start_pagee}, [end_page] '
-                f'{extracted_text.end_page}, [status] {extracted_text.status}, '
-                f'[started_at] {extracted_text.started_at}, [ended_at] '
-                f'{extracted_text.ended_at}'
-            )
-            self.dispatcher_service.logger.debug(
-                f"Current extracted text count: {count}."
+                f'[status] {extracted_text.status}, [file_type] '
+                f'{extracted_text.file_type}, [start_page] '
+                f'{extracted_text.start_pagee}, [end_page] '
+                f'{extracted_text.end_page}, [started_at] '
+                f'{extracted_text.started_at}, [ended_at] '
+                f'{extracted_text.ended_at}, [errors] {extracted_text.errors}'
             )
         else:
             extracted_text = DocExtractedText(
                 id_=message_key,
                 content=None,
+                status=ExtractedTextStatus.EXTRACTING,
+                file_type=file_extension,
                 start_page=start_page,
                 end_page=end_page,
-                status=ExtractedTextStatus.EXTRACTING,
                 started_at=datetime.now(),
                 ended_at=None,
+                errors=None
             )
-            self.dispatcher_service.db.insert_extracted_text(
-                extracted_text, file_extension, cache
-            )
+            self.dispatcher_service.db.insert_extracted_text(extracted_text)
 
             topic = KafkaTopic.DOC_TEXT_EXTRACTION.value
-            message_value = self.request_schema.dumps(data)
+            message_value = self.doc_produced_msg_schema.dumps(data)
             self._produce_message(topic,
                                   message_key,
                                   message_value)
@@ -293,15 +292,6 @@ class TextExtraction(Resource):
         extracted_text = self.dispatcher_service.db.get_extracted_text(document_id)
         if extracted_text is None:
             abort(404, errors=f'Extracted text "{document_id}" not found.')  # NOT FOUND
-        # Delete extracted text if the user requested it not to be cached,
-        # i.e., not to be permanently stored in the database.
-        if extracted_text.status == ExtractedTextStatus.COMPLETED.value:
-            self.dispatcher_service.db.delete_if_not_cache(document_id)
-        # The id of the extracted text retrieved from the database corresponds
-        # to the content id. This id might not match the attribute 'file_id'.
-        # Therefore, we make sure the returned id matches the
-        # id requested (file id, i.e. document id).
-        extracted_text.id_ = document_id
         response = self.ok_response_schema.dump(extracted_text)
         return response, 200  # OK
 

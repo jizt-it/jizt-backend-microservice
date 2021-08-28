@@ -20,12 +20,15 @@
 __version__ = '0.1.0'
 
 import hashlib
+from random import randbytes
 
 
 def get_unique_key(file: bytes, start_page: int, end_page: int) -> str:
     """Get a unique key for a file.
 
-    This method hashes the file bytes. SHA-256 algorithm is used.
+    In order to add entropy, this function uses the file bytes. SHA-256
+    algorithm is used. Each time this function is called, it returns a different
+    key, even if the file is the same.
 
     Args:
         file (:obj:`bytes`):
@@ -39,4 +42,6 @@ def get_unique_key(file: bytes, start_page: int, end_page: int) -> str:
         :obj:`str`: The unique, SHA-256 encrypted key.
     """
 
-    return hashlib.sha256(f"{file}{start_page}{end_page}".encode()).hexdigest()
+    return hashlib.sha256(
+        f"{file}{start_page}{end_page}{randbytes(100)}".encode()
+    ).hexdigest()

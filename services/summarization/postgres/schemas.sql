@@ -142,11 +142,11 @@ CREATE TABLE files.extracted_text (
     content             TEXT,
     status              files.STATUS NOT NULL,
     file_type           files.FILE_TYPE NOT NULL,
-    last_accessed       TIMESTAMPTZ NOT NULL,
     start_page          INTEGER NOT NULL CHECK (start_page >= 0)
     end_page            INTEGER NOT NULL CHECK (end_page >= 0)
     started_at          TIMESTAMPTZ NOT NULL,
     ended_at            TIMESTAMPTZ,
+    last_accessed       TIMESTAMPTZ NOT NULL,
     errors              JSON
 );
 

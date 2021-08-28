@@ -42,18 +42,12 @@ class TextExtractionDAOInterface:
             :obj:`None` if it doesn't exist in the database.
         """
 
-    def insert_extracted_text(self, extracted_text: DocExtractedText,
-                              file_extension: SupportedFileType, cache: bool):
+    def insert_extracted_text(self, extracted_text: DocExtractedText):
         """Insert a new extracte text to the database.
 
         Args:
             extracted_text (:obj:`DocExtractedText`):
                 The extracted text to be saved.
-            file_extension (:obj:`SupportedFileType`):
-                The file type of the document, e.g., ``SuportedFileType.PDF``.
-            cache (:obj:`bool`):
-                Whether the extracted text must be cached, i.e., permanently
-                stored in the database.
         """
 
     def delete_summary(self, id_: str, delete_source: bool):
@@ -118,25 +112,6 @@ class TextExtractionDAOInterface:
                 The id of the summary before its source has been preprocessed.
             preprocessed_id (:obj:`str`):
                 The id of the summary once its source has been preprocessed.
-        """
-
-    def update_cache_true(self, id_: str):
-        """Start caching an extracted text.
-
-        If a user requests the extracted text from their files not to be cached,
-        the extracted text's cache value will be set to :obj:`False`. However,
-        if later on another user requests the same exact extracted text to be
-        cached, the cache value will be set to :obj:`True`.
-
-        The oppsite is not possible, i.e., if a user requests the extracted
-        text to be cached, and then another user requests the same exact summary
-        not to be cached, the cache value will still be :obj:`True`, since we
-        need to keep the extracted text for the user that did request the
-        caching.
-
-        Args:
-            id_ (:obj:`str`):
-                The file id (not to be confused with the content id).
         """
 
     def extracted_text_exists(self, id_: str):

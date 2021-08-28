@@ -21,7 +21,9 @@ __version__ = '0.1.11'
 
 from datetime import datetime
 from marshmallow import Schema, fields, pre_dump, pre_load, EXCLUDE, INCLUDE
+from werkzeug.datastructures import FileStorage
 from extracted_text_status import ExtractedTextStatus
+from supported_file_types import SupportedFileType
 from typing import Tuple
 
 
@@ -33,44 +35,53 @@ class DocExtractedText():
     * id_ (:obj:`str`): the id of the extracted text (hash of the document from which
       it was extracted).
     * content (:obj:`str`): the extracted text.
+    * status (:obj:`data.extracted_text_status.ExtractedTextStatus`):
+      the current status of the extracted text.
+    * file_type (:obj:`data.supported_file_types.SupportedFileType`): the file
+      type the extracted text came from.
     * start_page (:obj:`int`): the first page (1-indexed) from which the text
       was extracted.
     * end_page (:obj:`int`): the last page (1-indexed) until which the text was
       extracted.
-    * status (:obj:`data.extracted_text_status.ExtractedTextStatus`):
-      the current status of the extracted text.
     * started_at (:obj:`datetime.datetime`): the time when it was first
       requested to extract the text.
     * ended_at (:obj:`datetime.datetime`): the time when the text was finished to be
       extracted.
+    * errors (:obj:`Union[dict, None]`): errors originated when extracting the
+      text (if any).
     """
 
     def __init__(self,
                  id_: str,
                  content: str,
+                 status: ExtractedTextStatus,
+                 file_type: SupportedFileType,
                  start_page: int,
                  end_page: int,
-                 status: ExtractedTextStatus,
                  started_at: datetime,
                  ended_at: datetime,
-    ):
+                 errors: dict):
         self.id_ = id_
         self.content = content
+        self.status = status.value
+        self.file_type = file_type.value
         self.start_page = start_page
         self.end_page = end_page
-        self.status = status.value
         self.started_at = started_at
         self.ended_at = ended_at
+        self.errors = errors
 
     def __str__(self):
         return (f'EXTRACTED TEXT [id]: {self.id_}, [content]: "{self.content}", '
+                f'[status]: {self.status}, [file_type]: {self.file_type}, '
                 f'[start_page]: {self.start_page}, [end_page]: {self.end_page}, '
-                f'[status]: {self.status}, [started_at]: {self.started_at}, '
+                f'[started_at]: {self.started_at}, '
                 f'[ended_at]: {self.ended_at}')
 
     def __repr__(self):
-        return (f'DocExtractedText({self.id_}, {self.start_page}, {self.end_page} '
-                f'{self.status}, {self.started_at}, {self.ended_at}')
+        return (f'DocExtractedText({self.id_}, {self.content}, {self.status}, '
+                f'{self.file_type}, {self.start_page}, {self.end_page}, '
+                f'{self.started_at}, {self.ended_at}, {self.errors})')
 
 
 class DocTextExtractionRequestSchema(Schema):
@@ -79,8 +90,6 @@ class DocTextExtractionRequestSchema(Schema):
     :code:`/v1/text-extraction/doc - POST`
 
     Fields:
-        document (:obj:`str`):
-            The text in plain format to be summarized.
         start_page (:obj:`int`), `optional`, defaults to :obj:`None`:
             The first page (1-indexed) from which to extract the text. If
             the start page is not specified, the text will be extracted from
@@ -91,15 +100,10 @@ class DocTextExtractionRequestSchema(Schema):
             text from that page is extracted. If the end page is not
             specified, the text will be extracted until the last page of the
             document.
-        cache (:obj:`bool`):
-            Whether the summary must be cached or not. A cached summary implies that
-            it will be permanently stored in the database.
     """
 
-    document = fields.Str(required=True)
     start_page = fields.Int()
     end_page = fields.Int()
-    cache = fields.Bool(required=True)
 
     @pre_load
     def validate_and_set_defaults(self, data, many, **kwargs):
@@ -116,10 +120,6 @@ class DocTextExtractionRequestSchema(Schema):
             data["end_page"] = None
         else:
             data["end_page"] = int(data["end_page"])
-
-        # Check cache
-        if ("cache" not in data or "cache" in data and data["cache"] is None):
-            data["cache"] = True
 
         return data
 
@@ -172,12 +172,13 @@ class DocResponseSchema(Schema):
         """
 
         response = {"document_id": extracted_text.id_,
-                    "started_at": extracted_text.started_at,
-                    "ended_at": extracted_text.ended_at,
-                    "status": extracted_text.status,
                     "content": extracted_text.content,
+                    "status": extracted_text.status,
+                    "file_type": extracted_text.file_type,
                     "start_page": extracted_text.start_page,
-                    "end_page": extracted_text.end_page}
+                    "end_page": extracted_text.end_page,
+                    "started_at": extracted_text.started_at,
+                    "ended_at": extracted_text.ended_at}
 
         return response
 
@@ -186,22 +187,21 @@ class DocResponseSchema(Schema):
         unknown = EXCLUDE
 
 
-# TODO: probably don't need this?
 class DocTextExtractionProducedMsgSchema(Schema):
     """Schema for the produced messages to the topic :attr:`KafkaTopic.DOC_TEXT_EXTRACTION`.
 
     Fields:
-        text_preprocessed (:obj:`str`):
-            The pre-processed text.
-        model (:obj:`str`):
-            The model used to generate the summary.
-        params (:obj:`dict`):
-            The params used in the summary generation.
+        file (:obj:`bytes`):
+            The file in bytes.
+        start_page (:obj:`int`):
+            The first page (1-indexed) from which the text will be extracted.
+        end_page (:obj:`int`):
+            The last page (1-indexed) until which the text will be extracted.
     """
 
-    text_preprocessed = fields.Str(required=True)
-    model = fields.Str(required=True)
-    params = fields.Dict(required=True)
+    file = fields.Raw(required=True)
+    start_page = fields.Int(required=True)
+    end_page = fields.Int(required=True)
 
 
 class ConsumedMsgSchema(Schema):
