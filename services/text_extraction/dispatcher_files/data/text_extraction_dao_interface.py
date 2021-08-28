@@ -22,7 +22,7 @@
 __version__ = '0.1.3'
 
 from datetime import datetime
-from schemas import ExtractedTextDoc
+from schemas import DocExtractedText
 from extracted_text_status import ExtractedTextStatus
 from supported_file_types import SupportedFileType
 
@@ -42,12 +42,12 @@ class TextExtractionDAOInterface:
             :obj:`None` if it doesn't exist in the database.
         """
 
-    def insert_extracted_text(self, extracted_text: ExtractedTextDoc,
+    def insert_extracted_text(self, extracted_text: DocExtractedText,
                               file_extension: SupportedFileType, cache: bool):
         """Insert a new extracte text to the database.
 
         Args:
-            extracted_text (:obj:`ExtractedTextDoc`):
+            extracted_text (:obj:`DocExtractedText`):
                 The extracted text to be saved.
             file_extension (:obj:`SupportedFileType`):
                 The file type of the document, e.g., ``SuportedFileType.PDF``.

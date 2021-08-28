@@ -25,7 +25,7 @@ from extracted_text_status import ExtractedTextStatus
 from typing import Tuple
 
 
-class ExtractedTextDoc():
+class DocExtractedText():
     """Class for the extracted text from documents.
 
     An extracted text has the following attributes:
@@ -69,7 +69,7 @@ class ExtractedTextDoc():
                 f'[ended_at]: {self.ended_at}')
 
     def __repr__(self):
-        return (f'ExtractedTextDoc({self.id_}, {self.start_page}, {self.end_page} '
+        return (f'DocExtractedText({self.id_}, {self.start_page}, {self.end_page} '
                 f'{self.status}, {self.started_at}, {self.ended_at}')
 
 
@@ -163,7 +163,7 @@ class DocResponseSchema(Schema):
     end_page = fields.Int(required=True)
 
     @pre_dump
-    def build_reponse(self, extracted_text: ExtractedTextDoc, **kwargs):
+    def build_reponse(self, extracted_text: DocExtractedText, **kwargs):
         """Build a response with the :obj:`ExtractedText`.
 
         For more information, see the
@@ -186,8 +186,9 @@ class DocResponseSchema(Schema):
         unknown = EXCLUDE
 
 
-class TextEncodingProducedMsgSchema(Schema):
-    """Schema for the produced messages to the topic :attr:`KafkaTopic.TEXT_ENCODING`.
+# TODO: probably don't need this?
+class DocTextExtractionProducedMsgSchema(Schema):
+    """Schema for the produced messages to the topic :attr:`KafkaTopic.DOC_TEXT_EXTRACTION`.
 
     Fields:
         text_preprocessed (:obj:`str`):
@@ -207,23 +208,15 @@ class ConsumedMsgSchema(Schema):
     """Schema for the consumed messages.
 
     Fields:
-        summary_status (:obj:`str`):
-            The status of the summary.
-        params (:obj:`dict`):
-            The valid params, onced checked by the summarizer.
-        text_preprocessed (:obj:`str`):
-            The preprocessed text.
-        output (:obj:`str`):
-            The summary.
-        warnings (:obj:`dict`):
+        extracted_text_status (:obj:`str`):
+            The status of the extracted text.
+        content (:obj:`Union[str, None`):
+            The extracted text. It will be :obj:`None` if the text could not be
+            extracted.
+        errors (:obj:`Union[dict, None]`):
             The warnings derived from the client's request (if any).
     """
 
-    summary_status = fields.Str(required=True)
-    params = fields.Dict()
-    text_preprocessed = fields.Str()
-    output = fields.Str()
-    warnings = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))
-
-    class Meta:
-        unknown = INCLUDE
+    extracted_text_status = fields.Str()
+    conent = fields.Str()
+    errors = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))

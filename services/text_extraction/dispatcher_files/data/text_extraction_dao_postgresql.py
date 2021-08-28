@@ -28,7 +28,7 @@ from io import StringIO
 from collections import OrderedDict
 from psycopg2.extras import Json
 from summary_dao_interface import SummaryDAOInterface
-from schemas import ExtractedTextDoc
+from schemas import DocExtractedText
 from extracted_text_status import ExtractedTextStatus
 from supported_file_types import SupportedFileType
 from datetime import datetime
@@ -79,7 +79,7 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
                 extracted_text_row = cur.fetchone()
                 conn.commit()
                 if extracted_text_row is not None:
-                    return ExtractedTextDoc(
+                    return DocExtractedText(
                         id_=extracted_text_row[0],
                         content=extracted_text_row[1],
                         start_page=extracted_text_row[3],
@@ -95,7 +95,7 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
             if conn is not None:
                 conn.close()
 
-    def insert_extracted_text(self, extracted_text: ExtractedTextDoc,
+    def insert_extracted_text(self, extracted_text: DocExtractedText,
                               file_extension: SupportedFileType, cache: bool):
         """See base class."""
 

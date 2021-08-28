@@ -92,7 +92,7 @@ class ConsumerLoop(StoppableThread):
         # Consumer configuration. Must match Stimzi/Kafka configuration.
         config = {'bootstrap.servers': "jizt-cluster-kafka-bootstrap:9092",
                   'client.id': socket.gethostname(),
-                  'group.id': "dispatcher",
+                  'group.id': "summarization-dispatcher",
                   'auto.offset.reset': "earliest",
                   'session.timeout.ms': 10000,
                   'enable.auto.commit': True,  # default
@@ -103,7 +103,6 @@ class ConsumerLoop(StoppableThread):
         self.producer = Producer()
         self.db = db
         self.consumed_msg_schema = ConsumedMsgSchema()
-        self.text_encoding_produced_msg_schema = TextEncodingProducedMsgSchema()
 
     def run(self):
         try:

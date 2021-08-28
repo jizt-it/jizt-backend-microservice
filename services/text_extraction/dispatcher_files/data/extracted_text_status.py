@@ -27,3 +27,4 @@ class ExtractedTextStatus(Enum):
 
     EXTRACTING = "extracting"
     COMPLETED = "completed"
+    FAILED = "failed"

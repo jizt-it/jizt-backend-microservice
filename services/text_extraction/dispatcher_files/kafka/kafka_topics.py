@@ -25,5 +25,5 @@ from enum import Enum
 class KafkaTopic(Enum):
     """Existent Kafka Topics."""
 
-    TEXT_EXTRACTING_DOC = 'text-extracting-doc'
-    TEXT_EXTRACTING_IMG = 'text-extracting-img'
+    DOC_TEXT_EXTRACTION = 'doc-text-extraction'
+    IMG_TEXT_EXTRACTION = 'img-text-extraction'

@@ -28,16 +28,16 @@ from unique_key import get_unique_key
 from confluent_kafka import DeserializingConsumer, Message, KafkaError, KafkaException
 from confluent_kafka.serialization import StringDeserializer
 from kafka_producer import Producer
-from data.summary_status import SummaryStatus
-from data.summary_dao_factory import SummaryDAOFactory
+from data.extracted_text_status import ExtractedTextStatus
+from data.text_extraction_dao_factory import TextExtractionDAOFactory
 from data.schemas import ConsumedMsgSchema, TextEncodingProducedMsgSchema
 
-# Interval in seconds to delete old, completed summaries that
+# Interval in seconds to delete old, completed extracted texts that
 # have cache to False and have not been requested through an
 # HTTP GET request.
 CACHE_CLEANUP_INTERVAL_SECONDS = 1 * 60  # 1 minute
 
-# Completed summaries with cache set to False and requested before
+# Completed extracted texts with cache set to False and requested before
 # these seconds will be deleted.
 OLDER_THAN_SECONDS = 4 * 60  # 4 min
 
@@ -79,7 +79,7 @@ class ConsumerLoop(StoppableThread):
     <https://docs.confluent.io/platform/current/clients/confluent-kafka-python/#pythonclient-consumer>`__.
     """
 
-    def __init__(self, db: SummaryDAOFactory):
+    def __init__(self, db: TextExtractionDAOFactory):
         super(ConsumerLoop, self).__init__()
 
         logging.basicConfig(
@@ -87,12 +87,12 @@ class ConsumerLoop(StoppableThread):
             level=logging.DEBUG,
             datefmt='%d/%m/%Y %I:%M:%S %p'
         )
-        self.logger = logging.getLogger("DispatcherConsumerLoop")
+        self.logger = logging.getLogger("TextExtractionDispatcherConsumerLoop")
 
         # Consumer configuration. Must match Stimzi/Kafka configuration.
         config = {'bootstrap.servers': "jizt-cluster-kafka-bootstrap:9092",
                   'client.id': socket.gethostname(),
-                  'group.id': "dispatcher",
+                  'group.id': "text-extraction-dispatcher",
                   'auto.offset.reset': "earliest",
                   'session.timeout.ms': 10000,
                   'enable.auto.commit': True,  # default
@@ -137,12 +137,18 @@ class ConsumerLoop(StoppableThread):
 
                     data = self.consumed_msg_schema.loads(msg.value())
 
-                    if data["summary_status"] == SummaryStatus.PREPROCESSING.value:
-                        id_preprocessed = get_unique_key(
-                            data["text_preprocessed"],
-                            data["model"],
-                            data["params"]
-                        )
+                    if data["extracted_text_status"] != ExtractedTextStatus.FAILED.value:
+                        id_content = get_unique_key(data["content"])
+                        extracted_text = self.dispatcher_service.db.get_extracted_text(id_content)
+                        if (extracted_text is not None):
+                            # Only update the id in case it is necessary
+                            if msg.key() != id_content:
+                                self.db.update_preprocessed_id(msg.key(), id_preprocessed)
+                            self.logger.debug("Text with extracted content "
+                                              "already exists.")
+
+
+
                         summary, _ = self.db.get_summary(id_preprocessed)
                         if (summary is not None and
                                 summary.status == SummaryStatus.COMPLETED.value):

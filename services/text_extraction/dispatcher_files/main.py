@@ -36,7 +36,7 @@ from kafka.kafka_consumer import ConsumerLoop
 from kafka.unique_key import get_unique_key
 from data.extracted_text_status import ExtractedTextStatus
 from data.text_extraction_dao_factory import TextExtractionDAOFactory
-from data.schemas import (ExtractedTextDoc, DocTextExtractionRequestSchema,
+from data.schemas import (DocExtractedText, DocTextExtractionRequestSchema,
                           ResponseSchema)
 from data.supported_file_types import SupportedFileType
 from pathlib import Path
@@ -219,8 +219,12 @@ class TextExtraction(Resource):
 
         message_key = get_unique_key(file, start_page, end_page)  # file id
 
-        if self.dispatcher_service.db.extracted_text_exists(message_key):
-            extracted_text = self.dispatcher_service.db.get_extracted_text(message_key)
+        extracted_text = (self.dispatcher_service.db.get_extracted_text(message_key)
+                          if self.dispatcher_service.db.extracted_text_exists(message_key)
+                          else None)
+
+        if (extracted_text is not None
+                and extracted_text.status != ExtractedTextStatus.FAILED.value):
             if cache:
                 self.dispatcher_service.db.update_cache_true(message_key)
             count = self.dispatcher_service.db.increment_extracted_text_count(message_key)
@@ -238,7 +242,7 @@ class TextExtraction(Resource):
                 f"Current extracted text count: {count}."
             )
         else:
-            extracted_text = ExtractedTextDoc(
+            extracted_text = DocExtractedText(
                 id_=message_key,
                 content=None,
                 start_page=start_page,
@@ -251,7 +255,7 @@ class TextExtraction(Resource):
                 extracted_text, file_extension, cache
             )
 
-            topic = KafkaTopic.TEXT_EXTRACTING_DOC.value
+            topic = KafkaTopic.DOC_TEXT_EXTRACTION.value
             message_value = self.request_schema.dumps(data)
             self._produce_message(topic,
                                   message_key,
@@ -279,7 +283,7 @@ class TextExtraction(Resource):
         Returns:
             :obj:`dict`: A ``200 OK`` response with a JSON body containing the
             extracted text. For info on the extracted text fields, see
-            :class:`data.schemas.ExtractedTextDoc`.
+            :class:`data.schemas.DocExtractedText`.
 
         Raises:
             :class:`http.client.HTTPException`: If there exists no extracted

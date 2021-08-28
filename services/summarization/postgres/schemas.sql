@@ -136,7 +136,7 @@ CREATE TABLE summaries.raw_id_preprocessed_id (
 */
 CREATE TYPE files.FILE_TYPE AS ENUM ('pdf', 'xps', 'oxps', 'cbz', 'fb2', 'epub');
 
-CREATE TYPE files.STATUS AS ENUM ('extracting', 'completed');
+CREATE TYPE files.STATUS AS ENUM ('extracting', 'completed', 'failed');
 
 CREATE TABLE files.extracted_text_doc (
     content_id          CHAR(64) PRIMARY KEY,
@@ -147,6 +147,7 @@ CREATE TABLE files.extracted_text_doc (
     started_at          TIMESTAMPTZ NOT NULL,
     ended_at            TIMESTAMPTZ,
     request_count       INTEGER NOT NULL CHECK (request_count >= 0) DEFAULT 0
+    errors              JSON
 );
 
 CREATE TABLE files.file_id_extracted_text_id (
