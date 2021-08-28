@@ -17,20 +17,19 @@
 
 """Kafka Consumer."""
 
-__version__ = '0.1.3'
+__version__ = '0.1.0'
 
 import logging
 import socket
 from datetime import datetime
 from threading import Thread, Event
 from kafka_topics import KafkaTopic
-from unique_key import get_unique_key
 from confluent_kafka import DeserializingConsumer, Message, KafkaError, KafkaException
 from confluent_kafka.serialization import StringDeserializer
 from kafka_producer import Producer
 from data.extracted_text_status import ExtractedTextStatus
 from data.text_extraction_dao_factory import TextExtractionDAOFactory
-from data.schemas import ConsumedMsgSchema, TextEncodingProducedMsgSchema
+from data.schemas import ConsumedMsgSchema
 
 # Interval in seconds to delete old, completed extracted texts that
 # have cache to False and have not been requested through an
@@ -137,61 +136,18 @@ class ConsumerLoop(StoppableThread):
 
                     data = self.consumed_msg_schema.loads(msg.value())
 
-                    if data["extracted_text_status"] != ExtractedTextStatus.FAILED.value:
-                        id_content = get_unique_key(data["content"])
-                        extracted_text = self.dispatcher_service.db.get_extracted_text(id_content)
-                        if (extracted_text is not None):
-                            # Only update the id in case it is necessary
-                            if msg.key() != id_content:
-                                self.db.update_preprocessed_id(msg.key(), id_preprocessed)
-                            self.logger.debug("Text with extracted content "
-                                              "already exists.")
+                    # Important: keys must match DB columns
+                    update_columns = {
+                        "content": data["content"],
+                        "status": data["status"],
+                        "ended_at": datetime.now(),
+                        "errors": data["errors"]
+                    }
+                    extracted_text = self.db.update_extracted_text(msg.key(),
+                                                                   **update_columns)
+                    self.logger.debug(f"Consumer message processed. "
+                                      f"Extracted text updated: {extracted_text}")
 
-
-
-                        summary, _ = self.db.get_summary(id_preprocessed)
-                        if (summary is not None and
-                                summary.status == SummaryStatus.COMPLETED.value):
-                            # Only update the id in case it is necessary
-                            if msg.key() != id_preprocessed:
-                                self.db.update_preprocessed_id(msg.key(), id_preprocessed)
-                            self.logger.debug("Summary with preprocessed text already "
-                                              "exists. Not producing to Encoder.")
-                        else:
-                            old_source = self.db.get_summary(msg.key())[0].source
-                            self.db.update_source(old_source,
-                                                  data["text_preprocessed"],
-                                                  msg.key(),
-                                                  id_preprocessed)
-                            del data["summary_status"]
-                            message_value = self.text_encoding_produced_msg_schema.dumps(data)
-                            self._produce_message(KafkaTopic.TEXT_ENCODING.value,
-                                                  msg.key(),
-                                                  message_value)
-                            # If the preprocessor generated warnings, we would have to
-                            # update the DB here (for now it doesn't produce them)
-                            self.logger.debug("Preprocessed text does not exist. "
-                                              "Producing to Encoder.")
-                        count = self.db.increment_summary_count(msg.key())
-                        self.logger.debug(f"Current summary count: {count}.")
-                    else:
-                        # Update warnings
-                        warnings = self._update_warnings(
-                            self.db.get_summary(msg.key())[1],  # previous warnings
-                            data.pop('warnings', {})
-                        )
-                        # Important: keys must match DB columns
-                        update_columns = {"status": data["summary_status"],
-                                          "warnings": warnings}
-                        if data["summary_status"] == SummaryStatus.COMPLETED.value:
-                            update_columns.update({
-                                "ended_at": datetime.now(),
-                                "summary": data["output"],
-                                "params": data["params"]  # validated params
-                            })
-                        summary, _ = self.db.update_summary(msg.key(), **update_columns)
-                        self.logger.debug(f"Consumer message processed. "
-                                          f"Summary updated: {summary}")
         finally:
             self.logger.debug("Consumer loop stopped. Closing consumer...")
             self.consumer.close()  # close down consumer to commit final offsets
@@ -229,50 +185,6 @@ class ConsumerLoop(StoppableThread):
         # Wait up to 1 second for events. Callbacks will
         # be invoked during this method call.
         self.producer.poll(1)
-
-    @classmethod
-    def _update_warnings(cls, prev_warnings: dict, new_warnings: dict):
-        """Add new warnings to the existent ones.
-
-        If there were already warnings for a certain key, the new warnings are
-        concatenated to the previous ones, e.g.
-        {"key_1": ["warning_old_1", "warnings_old_2"]} will be updated to
-        {"key_1": ["warning_old_1", "warnings_old_2", "new_warning_1", ...]}.
-        Previous non-common keys remain (previous warnings), and new, non-common ones
-        are simply added.
-
-        Args:
-            prev_warnings (:obj:`dict`):
-                A :obj:`dict` whose keys are :obj:`str` (the parameters for which
-                there are warnings) and whose values are :obj:`list`s containing
-                :obj:`str` (i.e. the previous warnings).
-            new_warnings (:obj:`dict`):
-                A :obj:`dict` whose keys are :obj:`str` (the parameters for which
-                there are warnings) and whose values are :obj:`list`s containing
-                :obj:`str` (i.e. the new warnings).
-
-        Returns:
-            :obj:`dict`: A dictionary with the updated warnings. If
-            :obj:`prev_warnings` is :obj:`None` and :obj:`new_warnings` is either
-            :obj:`None` or empty, :obj:`None` will be returned.
-        """
-
-        if new_warnings is None or not new_warnings:
-            return prev_warnings
-
-        old_warnings = prev_warnings.copy() if prev_warnings is not None else {}
-        warnings = old_warnings.copy()
-        # New warnings
-        new_keys = {key: value for key, value in new_warnings.items()
-                    if key not in old_warnings}
-        warnings.update(new_keys)
-        # Concatenate values of common keys (values are lists)
-        common = {common_key: old_warnings[common_key] + new_warnings[common_key]
-                  for common_key in [common_key for common_key in old_warnings
-                                     if common_key in new_warnings]}
-        warnings.update(common)
-
-        return warnings
 
     def kafka_delivery_callback(self, err: KafkaError, msg: Message):
         """Kafka per-message delivery callback.

@@ -152,14 +152,16 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
             if conn is not None:
                 conn.close()
 
-    def update_summary(self,
-                       id_: str,
-                       summary: str = None,  # output
-                       params: dict = None,
-                       status: str = None,
-                       started_at: datetime = None,
-                       ended_at: datetime = None,
-                       warnings: dict = None):
+    def update_extracted_text(self,
+                              id_: str,
+                              content: str = None,
+                              status: ExtractedTextStatus = None,
+                              file_type: SupportedFileType = None,
+                              start_page: int = None,
+                              end_page: int = None,
+                              started_at: datetime = None,
+                              ended_at: datetime = None,
+                              errors: dict = None):
         """See base class."""
 
         args = OrderedDict({key: value for key, value in locals().items()
@@ -170,33 +172,25 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
         for key in dicts:
             args[key] = Json(args[key])
 
-        if "warnings" in args:
-            warnings = args.pop("warnings")
-
         keys = list(args.keys())
         values = list(args.values()) + [id_]
         concat = StringIO()
-        concat.write(f"UPDATE {SCHEMA}.summary SET ")
+        concat.write(f"UPDATE {SCHEMA}.extracted_text SET ")
         for field in keys[:-1]:
             concat.write(f"{field} = %s, ")
         concat.write(f"{keys[-1]} = %s ")
-        concat.write(f"FROM {SCHEMA}.raw_id_preprocessed_id ")
-        concat.write("WHERE raw_id = %s AND preprocessed_id = summary_id;")
+        concat.write("WHERE id = %s;")
 
-        SQL_UPDATE_SUMMARY = concat.getvalue()
-        SQL_UPDATE_WARNINGS = f"""UPDATE {SCHEMA}.raw_id_preprocessed_id
-                                  SET warnings = %s
-                                  WHERE raw_id = %s;"""
+        SQL_UPDATE_EXTRACTED_TEXT = concat.getvalue()
 
         if self.summary_exists(id_):
             conn = None
             try:
                 conn = self._connect()
                 with conn.cursor() as cur:
-                    cur.execute(SQL_UPDATE_SUMMARY, values)  # values is a list!
-                    cur.execute(SQL_UPDATE_WARNINGS, (warnings, id_))
+                    cur.execute(SQL_UPDATE_EXTRACTED_TEXT, values)  # values is a list!
                     conn.commit()
-                    return self.get_summary(id_)
+                    return self.get_extracted_text(id_)
             except (Exception, psycopg2.DatabaseError) as error:
                 self.logger.error(error)
             finally:
@@ -204,99 +198,6 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
                     conn.close()
         else:
             return (None, None)
-
-    def update_source(self,
-                      old_source: str,
-                      new_source: str,
-                      old_summary_id: str,
-                      new_summary_id: str):
-        """See base class."""
-
-        # The source id is also modified in the summary table
-        # because of ON UPDATE CASCADE
-        SQL_UPDATE_SOURCE = f"""UPDATE {SCHEMA}.source
-                                SET source_id = %s,
-                                    content = %s,
-                                    content_length = %s
-                                WHERE source_id = %s;"""
-
-        # The id in raw_id_preprocessed_id is also updated
-        # because of ON UPDATE CASCADE
-        SQL_UPDATE_SUMMARY_ID = f"""UPDATE {SCHEMA}.summary
-                                    SET summary_id = %s
-                                    WHERE summary_id = %s;"""
-
-        # We insert the binding (new_summary_id -> new_summary_id) so that a summary
-        # can be also retrieved with its preprocessed id
-        SQL_INSERT_PREPROCESSED_ID =  """INSERT INTO {SCHEMA}.raw_id_preprocessed_id
-                                         (raw_id, preprocessed_id, cache, last_accessed)
-                                         SELECT %s, %s, cache, %s
-                                         FROM {SCHEMA}.raw_id_preprocessed_id
-                                         WHERE raw_id = %s;"""
-
-        conn = None
-        try:
-            conn = self._connect()
-            with conn.cursor() as cur:
-                old_source_id = self._get_unique_key(old_source)
-                new_source_id = self._get_unique_key(new_source)
-                cur.execute(SQL_UPDATE_SOURCE, (new_source_id, new_source,
-                                                len(new_source), old_source_id))
-                cur.execute(SQL_UPDATE_SUMMARY_ID, (new_summary_id, old_summary_id))
-                cur.execute(SQL_INSERT_PREPROCESSED_ID, (new_summary_id,
-                                                         new_summary_id,
-                                                         datetime.now(),
-                                                         old_summary_id))
-                conn.commit()
-        except (Exception, psycopg2.DatabaseError) as error:
-            self.logger.error(error)
-        finally:
-            if conn is not None:
-                conn.close()
-
-    def update_preprocessed_id(self,
-                               raw_id: str,
-                               new_preprocessed_id: str):
-        """See base class."""
-
-        SQL_UPDATE_ID = f"""UPDATE {SCHEMA}.raw_id_preprocessed_id
-                            SET preprocessed_id = %s,
-                                last_accessed = %s
-                            WHERE raw_id = %s
-                            RETURNING cache;"""
-
-        SQL_UPDATE_CACHE = f"""UPDATE {SCHEMA}.raw_id_preprocessed_id
-                               SET cache = %s,
-                                   last_accessed = %s
-                               WHERE raw_id = %s AND cache = FALSE;"""
-
-        # Because of ON DELETE CASCADE, this will delete both the
-        # source and the summary
-        SQL_DELETE_SUMMARY_OLD = f"""DELETE FROM {SCHEMA}.source
-                                     WHERE source_id = (
-                                         SELECT source_id FROM {SCHEMA}.summary
-                                         WHERE summary_id = %s
-                                     );"""
-
-        conn = None
-        try:
-            conn = self._connect()
-            with conn.cursor() as cur:
-                cur.execute(SQL_UPDATE_ID, (new_preprocessed_id,
-                                            datetime.now(),
-                                            raw_id))
-                cache = cur.fetchone()
-                if cache is not None:
-                    cur.execute(SQL_UPDATE_CACHE, (cache[0],
-                                                   datetime.now(),
-                                                   new_preprocessed_id))
-                    cur.execute(SQL_DELETE_SUMMARY_OLD, (raw_id,))
-                conn.commit()
-        except (Exception, psycopg2.DatabaseError) as error:
-            self.logger.error(error)
-        finally:
-            if conn is not None:
-                conn.close()
 
     def extracted_text_exists(self, id_: str):
         """See base class."""
@@ -405,39 +306,16 @@ class SummaryDAOPostgresql(SummaryDAOInterface):  # TODO: manage errors in excep
     def cleanup_cache(self, older_than_seconds: int):
         """See base class."""
 
-        SQL_DELETE_RAW_ID = f"""
-                 DELETE FROM {SCHEMA}.raw_id_preprocessed_id
-                 USING {SCHEMA}.summary
-                 WHERE preprocessed_id = summary_id AND
-                 cache = FALSE AND status = 'completed' AND
-                 last_accessed < NOW() - (%s::TEXT || ' seconds')::INTERVAL;"""
-
-        # Delete summaries that do not correspond to any request
-        SQL_DELETE_SUMMARY = f"""
-                DELETE FROM {SCHEMA}.summary
-                WHERE summary_id IN (
-                    SELECT summary_id
-                    FROM {SCHEMA}.summary
-                    WHERE NOT EXISTS (SELECT 1 FROM {SCHEMA}.raw_id_preprocessed_id
-                                      WHERE preprocessed_id = summary_id)
-                )
-                RETURNING source_id;"""
-
-        # Delete sources that do not correspond to any summary
-        SQL_DELETE_SOURCE = f"""DELETE FROM {SCHEMA}.source
-                                WHERE source_id IN (%s);"""
+        SQL_CLEANUP = f"""
+                 DELETE FROM {SCHEMA}.extracted_text
+                 WHERE last_accessed < NOW() - (%s::TEXT || ' seconds')::INTERVAL;
+                 """
 
         conn = None
         try:
             conn = self._connect()
             with conn.cursor() as cur:
-                cur.execute(SQL_DELETE_RAW_ID, (older_than_seconds,))
-                cur.execute(SQL_DELETE_SUMMARY, (older_than_seconds,))
-                summaries_id = cur.fetchall()
-                if summaries_id:
-                    # Transform from e.g., [(1,), (1,), (2,)] to (1, 2, 3)
-                    summaries_id = tuple(i for tuple in set(summaries_id) for i in tuple)
-                    cur.execute(SQL_DELETE_SOURCE, summaries_id)
+                cur.execute(SQL_CLEANUP, (older_than_seconds,))
                 conn.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             self.logger.error(error)

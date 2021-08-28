@@ -60,24 +60,24 @@ class TextExtractionDAOInterface:
                 Whether to also delete the source.
         """
 
-    def update_summary(self,
-                       id_: str,
-                       summary: str,  # output
-                       params: dict,
-                       status: str,
-                       started_at: datetime,
-                       ended_at: datetime,
-                       warnings: dict):
-        """Update an existing summary.
+    def update_extracted_text(self,
+                              id_: str,
+                              content: str,
+                              status: ExtractedTextStatus,
+                              file_type: SupportedFileType,
+                              start_page: int,
+                              end_page: int,
+                              started_at: datetime,
+                              ended_at: datetime,
+                              errors: dict):
+        """Update an existing extracted text.
 
         Args:
-            See :py:class:`data.schemas.Summary`.
+            See :py:class:`data.schemas.DocExtractedText`.
 
         Returns:
-            :obj:tuple(:obj:`Summary`, :obj:`dict`): A tuple with the updated summary
-            and its associated warnings (if there are no warnings then they will be
-            :obj:`None`) or a tuple containing two :obj:`None`s if there
-            is not any summary with the specified id.
+            :obj:tuple(:obj:`DocExtractedText`): the updated extracted text or
+            :obj:`None` if no extracted text exists with the specified id.
         """
 
     def update_source(self,

@@ -208,15 +208,15 @@ class ConsumedMsgSchema(Schema):
     """Schema for the consumed messages.
 
     Fields:
-        extracted_text_status (:obj:`str`):
-            The status of the extracted text.
         content (:obj:`Union[str, None`):
             The extracted text. It will be :obj:`None` if the text could not be
             extracted.
+        status (:obj:`str`):
+            The status of the extracted text.
         errors (:obj:`Union[dict, None]`):
             The warnings derived from the client's request (if any).
     """
 
-    extracted_text_status = fields.Str()
-    conent = fields.Str()
+    content = fields.Str()
+    status = fields.Str()
     errors = fields.Dict(keys=fields.Str(), values=fields.List(fields.Str()))

@@ -291,7 +291,7 @@ class TextExtraction(Resource):
 
         extracted_text = self.dispatcher_service.db.get_extracted_text(document_id)
         if extracted_text is None:
-            abort(404, errors=f'Extracted text "{document_id}" not found.')  # NOT FOUND
+            abort(404, errors=f'Extracted text "{document_id}" not found.')
         response = self.ok_response_schema.dump(extracted_text)
         return response, 200  # OK
 
