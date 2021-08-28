@@ -29,8 +29,7 @@ DROP TABLE IF EXISTS summaries.vendor CASCADE;
 DROP TABLE IF EXISTS summaries.language CASCADE;
 DROP TABLE IF EXISTS summaries.source CASCADE;
 
-DROP TABLE IF EXISTS files.file_id_extracted_text_id CASCADE;
-DROP TABLE IF EXISTS files.extracted_text CASCADE;
+DROP TABLE IF EXISTS files.extracted_text;
 
 DROP TYPE IF EXISTS summaries.NLP_TASK;
 DROP TYPE IF EXISTS summaries.STATUS;
@@ -138,27 +137,17 @@ CREATE TYPE files.FILE_TYPE AS ENUM ('pdf', 'xps', 'oxps', 'cbz', 'fb2', 'epub')
 
 CREATE TYPE files.STATUS AS ENUM ('extracting', 'completed', 'failed');
 
-CREATE TABLE files.extracted_text_doc (
-    content_id          CHAR(64) PRIMARY KEY,
-    content             TEXT NOT NULL,
-    start_page          INTEGER NOT NULL CHECK (start_page >= 0)
-    end_page            INTEGER NOT NULL CHECK (end_page >= 0)
-    status              summaries.STATUS NOT NULL,
-    started_at          TIMESTAMPTZ NOT NULL,
-    ended_at            TIMESTAMPTZ,
-    request_count       INTEGER NOT NULL CHECK (request_count >= 0) DEFAULT 0
-    errors              JSON
-);
-
-CREATE TABLE files.file_id_extracted_text_id (
-    file_id             CHAR(64) UNIQUE NOT NULL,
-    content_id          CHAR(64) NOT NULL
-        CONSTRAINT FK_extracted_text_id
-        REFERENCES files.extracted_text ON DELETE CASCADE ON UPDATE CASCADE,
-    cache               BOOLEAN NOT NULL DEFAULT TRUE,
+CREATE TABLE files.extracted_text (
+    id                  CHAR(64) PRIMARY KEY,
+    content             TEXT,
+    status              files.STATUS NOT NULL,
     file_type           files.FILE_TYPE NOT NULL,
     last_accessed       TIMESTAMPTZ NOT NULL,
-    PRIMARY KEY (file_id, content_id)
+    start_page          INTEGER NOT NULL CHECK (start_page >= 0)
+    end_page            INTEGER NOT NULL CHECK (end_page >= 0)
+    started_at          TIMESTAMPTZ NOT NULL,
+    ended_at            TIMESTAMPTZ,
+    errors              JSON
 );
 
 /*
