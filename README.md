@@ -1,9 +1,9 @@
-### ⚠️ Under construction – Service Temporarily Unavailable ⚠️
+### ⚠️ Under construction 🚧
 The Jizt backend has proven to work great in the frame of a distributed, microservices architecture. However, the implementation of this architecture has actually taken most part of our development time, and due to our (yet) limited resources, has slowed down the actual implementation of new features.
 
 With this in mind, we have decided to migrate the Jizt backend to a simpler monolithic architecture in pursuit of focusing our efforts on our main goal: provide a great summarization tool. Because let's be honest, we still don't have that many users and therefore powering our summarization pipeline with Kubernetes and Kafka is overkill at this point.
 
-**So stay tuned! Jizt will be back soon! Meanwhile, you can follow the migration process here: [jizt-it/jizt-backend-mono](https://github.com/jizt-it/jizt-backend-mono).**
+**So stay tuned! You can follow the migration process here: [jizt-it/jizt-backend-mono](https://github.com/jizt-it/jizt-backend-mono).**
 
 ---
 
