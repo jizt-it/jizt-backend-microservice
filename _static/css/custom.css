@@ -1,0 +1,210 @@
+/*
+ * Copyright (C) 2020-2021 Diego Miguel Lozano <contact@jizt.it>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * For license information on the libraries used, see LICENSE.
+ */
+
+p {
+    text-align: justify;
+}
+
+.wy-nav-content-wrap,
+.wy-nav-content {
+    background-color: white;
+}
+
+.wy-side-nav-search {
+    background-color: #000155;
+}
+
+.wy-nav-side {
+    background-color: #1f222c;
+    padding-bottom: 1em;
+}
+
+div .wy-menu.wy-menu-vertical {
+    background-color: #1f222c;
+}
+
+@media (min-width: 1450px) {
+    .wy-nav-content {
+        max-width: 55vw;
+    }
+}
+
+.wy-nav-top {
+    background: linear-gradient(90deg, rgba(207,39,84,1) 28%, rgba(64,92,255,1) 100%);
+    font-size: 1.3rem;
+    font-weight: bold;
+}
+
+.icon.icon-home {
+    margin: 0;
+}
+
+.icon.icon-home::before {
+    display: none;
+}
+
+.fa-github::before {
+    margin-left: -5px;
+    margin-right: 5px;
+}
+
+.fa.fa-bars::before {
+    font-size: 1.4rem;
+}
+
+.wy-menu.wy-menu-vertical {
+    background-color: #252C31;
+}
+
+.wy-menu-vertical li.current > a, .wy-menu-vertical li.on a {
+    color: #000155;
+}
+
+h1 {
+    color: #000155;
+}
+
+img {
+    margin-bottom: 10px;
+}
+
+li {
+    margin-bottom: 2%;
+}
+
+li > p {
+    margin-left: 7px;
+}
+
+a.external-link {
+    height: 100%;
+}
+
+a.external-link::after {
+    display: inline-block;
+    width: 30%;
+    height: 30%;
+    margin-left: 3%;
+    content: "";
+    background: transparent no-repeat url(../images/external-link.svg); 
+}
+
+.fa.fa-arrow-circle-left::before,
+.fa.fa-arrow-circle-right::before {
+    font-size: 0.89rem;
+}
+
+.figure p {
+    text-align: center;
+}
+
+
+span.caption-number {
+    display: none;
+}
+
+/*
+ * Tables
+ */
+.table-related-works th:not(:first-child),
+.table-related-works td:not(:first-child),
+.table-dependencies th:nth-child(2),
+.table-dependencies td:nth-child(2),
+.table-dependencies th:last-child,
+.table-dependencies td:last-child,
+.table-name-poll th:not(:first-child),
+.table-name-poll td:not(:first-child),
+.table-exp th:first-child,
+.table-exp td[rowspan="3"] {
+    text-align: center;
+}
+
+.table-fixed-costs,
+.table-direct-costs, 
+.table-indirect-costs {
+    margin: 0 auto;
+}
+
+.table-fixed-costs th:not(:first-child), 
+.table-fixed-costs td:not(:first-child),
+.table-direct-costs th:not(:first-child), 
+.table-direct-costs td:not(:first-child),
+.table-indirect-costs th:not(:first-child), 
+.table-indirect-costs td:not(:first-child) {
+    text-align: right;
+}
+
+/*
+ * Fonts
+ */
+body {
+    font-family: Lato;
+    font-size: 0.98rem;
+}
+
+h1, h2, .rst-content .toctree-wrapper p.caption, h3, h4, h5, h6, legend{
+    font-family: Lato-Bold;
+}
+
+p {
+    font-family: Lato;
+    font-size: 1rem;
+}
+
+a.external-link,
+.caption span.caption-text {
+    font-size: 0.75rem;
+}
+
+.figure .caption span.caption-text {
+    font-style: normal;
+    font-size: 0.9rem;
+}
+
+.wy-breadcrumbs,
+.wy-breadcrumbs-aside,
+.fa.fa-github {
+    font-size: 0.9rem;
+}
+
+
+/* Footnotes. */
+html.writer-html5 .rst-content dl.footnote > dd p {
+    font-size: 0.94rem;
+}
+
+footer p {
+    font-size: 0.85rem;
+}
+
+footer {
+    font-size: 0.8rem;
+}
+
+@font-face {
+    font-family: Lato-Bold;
+    src: url(fonts/Lato-Bold.ttf);
+    font-weight: 600;
+}
+
+@font-face {
+    font-family: Lato;
+    src: url(fonts/Lato-Regular.ttf);
+    font-weight: 400;
+}

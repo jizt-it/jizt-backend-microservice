@@ -1,0 +1,292 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Cross-platform app &mdash; Jizt - AI Summarization 0.1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/custom.css" type="text/css" />
+
+  
+  
+    <link rel="shortcut icon" href="../_static/favicon.png"/>
+  
+
+  
+  
+
+  
+    <link rel="canonical" href="docs.jizt.it/frontend/1_cross-platform-app.html" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/js/custom.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Contribute to Jizt" href="../misc/CONTRIBUTING.html" />
+    <link rel="prev" title="REST API" href="../backend/2_rest_api.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Jizt - AI Summarization
+          
+
+          
+            
+            <img src="../_static/jizt-docs.png" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Summarization</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../summarization/1_introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../summarization/2_preprocessing.html">Pre-processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../summarization/3_encoding.html">Encoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../summarization/4_summarization.html">Summarization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../summarization/5_postprocessing.html">Post-processing</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Backend</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../backend/1_architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../backend/2_rest_api.html">REST API</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Frontend</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Cross-platform app</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Help us</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../misc/CONTRIBUTING.html">Contribute to Jizt</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Jizt - AI Summarization</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Cross-platform app</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            
+              <a href="https://github.com/jizt-it/jizt-backend/blob/main/docs/source/frontend/1_cross-platform-app.rst" class="fa fa-github"> Edit on GitHub</a>
+            
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="cross-platform-app">
+<span id="backend-cross-platform-app"></span><h1>Cross-platform app<a class="headerlink" href="#cross-platform-app" title="Permalink to this headline">¶</a></h1>
+<p>Jizt App is developed with Dart and Flutter, and thus it is cross-platform by default.
+It implements a four-layer architecture and is mainly inspired by the Clean
+Architecture and Domain-Driven Design (DDD) patterns.</p>
+<p>As a result, the fundamental principles of the developed architecture are:</p>
+<ul class="simple">
+<li><p>Division of the application code into layers: each layer isolates an area of the
+code base.</p></li>
+<li><p>Each layer is strict with its dependencies, being able to interact only with the
+lower layers.</p></li>
+<li><p>As we move to the internal layers, the code becomes more generic. Thus, the upper
+layers dictate policies and rules, while the lower layers take care of
+implementation details such as databases, network operations or the user interface.</p></li>
+<li><p>The structure and language of the code must be based on the business domain.</p></li>
+</ul>
+<p>The following figure illustrates the Clean Architecture pattern, and can also be
+applied to our architecture:</p>
+<div class="figure align-center" id="fig-clean-architecture">
+<a class="reference internal image-reference" href="../_images/clean-architecture.jpg"><img alt="The Clean Architecture" src="../_images/clean-architecture.jpg" style="width: 80%;" /></a>
+<p class="caption"><span class="caption-number">Fig. 11 </span><span class="caption-text">Picture taken from <a class="reference external" href="https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html">Uncle Bob’s blog</a>.</span><a class="headerlink" href="#fig-clean-architecture" title="Permalink to this image">¶</a></p>
+</div>
+<p>These principles ensure that, even if the requirements, technologies or user interface
+of the application change over time, the essential functionalities of the application
+will not be significantly affected. In addition, this isolation between layers
+provides us with greater scalability and testability of our code.</p>
+<p>The following shows how the application architecture is conformed. As we can see, the
+four layers mentioned in which our application is divided are: Presentation,
+Application, Domain and Data.</p>
+<div class="figure align-center" id="fig-jizt-app-arch">
+<a class="reference internal image-reference" href="../_images/jizt-app-arch.png"><img alt="Jizt App architecture." src="../_images/jizt-app-arch.png" style="width: 100%;" /></a>
+<p class="caption"><span class="caption-number">Fig. 12 </span><span class="caption-text">Jizt App architecture.</span><a class="headerlink" href="#fig-jizt-app-arch" title="Permalink to this image">¶</a></p>
+</div>
+<p>The different modules that conform the app correspond to the previous layers in the
+following way:</p>
+<div class="figure align-center" id="fig-jizt-app-modules">
+<a class="reference internal image-reference" href="../_images/jizt-app-modules.png"><img alt="Jizt App modules." src="../_images/jizt-app-modules.png" style="width: 100%;" /></a>
+<p class="caption"><span class="caption-number">Fig. 13 </span><span class="caption-text">Jizt App modules.</span><a class="headerlink" href="#fig-jizt-app-modules" title="Permalink to this image">¶</a></p>
+</div>
+<p>When the user requests a new summary, this is what happens internally:</p>
+<div class="figure align-center" id="fig-jizt-app-seq-diagram">
+<a class="reference internal image-reference" href="../_images/seq-diagram1.png"><img alt="Jizt App sequence diagram." src="../_images/seq-diagram1.png" style="width: 100%;" /></a>
+<p class="caption"><span class="caption-number">Fig. 14 </span><span class="caption-text">Process followed when a user requests a new summary.</span><a class="headerlink" href="#fig-jizt-app-seq-diagram" title="Permalink to this image">¶</a></p>
+</div>
+<ol class="arabic simple">
+<li><p>The user requests to generate a new summary by clicking on the screen.</p></li>
+<li><p>The event is transformed through cubit into a summary request to the repository.</p></li>
+<li><p>The repository makes an HTTP POST request to the backend to obtain the summary id
+from the source text, the summary parameters, and the model.</p></li>
+<li><p>Once the summary id is obtained, the local database (cache layer) is queried to see
+if the requested summary is already available locally. If so, the summary is
+returned, and the screen is updated to show it to the user.</p></li>
+<li><p>Otherwise, periodic GET requests are made to the REST API until the summary is
+complete, as we explained in the <a class="reference internal" href="../backend/2_rest_api.html#sec-succesive-get-requests"><span class="std std-ref">previous section</span></a>. Finally, the screen is updated.</p></li>
+</ol>
+<p>The source code of Jizt App can be accessed at
+<a class="reference external" href="https://github.com/jizt-it/jizt-app">github.com/jizt-it/jizt-app</a>.</p>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="../misc/CONTRIBUTING.html" class="btn btn-neutral float-right" title="Contribute to Jizt" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../backend/2_rest_api.html" class="btn btn-neutral float-left" title="REST API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2021.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
