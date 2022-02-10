@@ -1,18 +1,15 @@
-### ⚠️ Under construction 🚧
-The Jizt backend has proven to work great in the frame of a distributed, microservices architecture. However, the implementation of this architecture has actually taken most part of our development time, and due to our (yet) limited resources, has slowed down the actual implementation of new features.
+### ⚠️ Not currently maintained ⚠️
+The Jizt backend proved to work great under a distributed, microservices architecture. For over one year, it was hosted on Google Cloud (GKE) powered by Kubernetes and Kafka. However, the implementation of the architecture on its own actually took most part of our development time, and due to our limited resources, slowed down the arrival of new features.
 
-With this in mind, we have decided to migrate the Jizt backend to a simpler monolithic architecture in pursuit of focusing our efforts on our main goal: provide a great summarization tool. Because let's be honest, we still don't have that many users and therefore powering our summarization pipeline with Kubernetes and Kafka is overkill at this point.
+With this in mind, we decided to migrate the Jizt backend to a simpler monolithic architecture in order to focus our efforts on our main goal: provide a great summarization tool. Since we still don't have that many users the new architecture should work just fine. Nevertheless, we'll never say we won't come back to a distributed approach! ;)
 
-**So stay tuned! You can follow the migration process here: [jizt-it/jizt-backend-mono](https://github.com/jizt-it/jizt-backend-mono).**
+**You can check the currently developed backend at [jizt-it/jizt-backend](https://github.com/jizt-it/jizt-backend).**
 
 ---
 
 <p align="center"><img width="400" src="https://github.com/dmlls/jizt/blob/main/img/readme/JIZT-logo.svg" alt="Jizt"></p>
 
 <p align="center" display="inline-block">
-  <a href="https://github.com/jizt-it/jizt-backend/actions/workflows/deploy.yaml">
-    <img src="https://github.com/jizt-it/jizt-backend/actions/workflows/deploy.yaml/badge.svg" alt="Deploy to GKE">
-  </a>
   <a href="https://docs.jizt.it">
     <img src="https://github.com/jizt-it/jizt-backend/actions/workflows/build-docs.yml/badge.svg" alt="Build & Publish docs">
   </a>
